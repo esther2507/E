@@ -15,13 +15,14 @@ function App() {
     <>
     {/* <WordToImage />
     <ImageToWord /> */}
-    <Login />
+    {/* <Login /> */}
     {/* <NonwordsBoard />
     <PhonologicalAwareness />
     <SentencesBoard />
     <SessionHistory />
     <SessionSetup />
     <StageASummary /> */}
+    <WordToImage />
     </>
   ) 
 }
