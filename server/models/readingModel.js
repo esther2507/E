@@ -21,7 +21,14 @@ const TeacherSchema = new mongoose.Schema({
             type: String,
             required: true,
             select: false
-        }
+    },
+    role: {
+    type: String,
+    enum: ['admin', 'teacher'],
+    default: 'teacher',
+    required: true
+},
+
 });
 
 const StudentSchema = new mongoose.Schema({ 

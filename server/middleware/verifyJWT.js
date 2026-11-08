@@ -15,7 +15,7 @@ const verifyJWT = (req, res, next) => {
         (err, decoded) => {
             if (err) return res.status(403).json({ message: 'Forbidden' });
             req.user = decoded;
-            if (req.user.role !== 'teacher') {
+            if (!['teacher', 'admin'].includes(req.user.role)) {
                 return res.status(403).json({ message: 'Forbidden' });
             }
             next();

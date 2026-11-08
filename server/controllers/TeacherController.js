@@ -35,7 +35,7 @@ const login = async (req, res) => {
         }
         const accessToken = jwt.sign(
 
-            { role: "teacher" },
+            { role: teacher.role },
 
             process.env.ACCESS_TOKEN_SECRET,
 

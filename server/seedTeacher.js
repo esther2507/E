@@ -19,17 +19,14 @@ async function seedFirstTeacher() {
 
     const hashedPassword = await bcrypt.hash(SEED_TEACHER_PASSWORD, 10)
 
-    await Teacher.findOneAndUpdate(
-        { username: SEED_TEACHER_USERNAME },
-        { 
-            Teachername: SEED_TEACHER_NAME,
-            username: SEED_TEACHER_USERNAME,
-            password: hashedPassword 
-        },
-        { upsert: true, returnDocument: 'after' }
-    )
+    await Teacher.create({
+        Teachername: SEED_TEACHER_NAME,
+        username: SEED_TEACHER_USERNAME,
+        password: hashedPassword,
+        role: 'admin'
+    })
 
-    console.log('First teacher created or updated successfully.')
+    console.log('First admin created successfully.')
 }
 
 seedFirstTeacher()

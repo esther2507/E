@@ -1,30 +1,24 @@
-import React from 'react';
-import WordToImage from './WordToImage';
-import ImageToWord from './ImageToWord';
+import { useState } from 'react';
 import Login from './Login';
-import NonwordsBoard from './NonwordsBoard';
-import PhonologicalAwareness from './PhonologicalAwareness';
-import SentencesBoard from './SentencesBoard';
-import SessionHistory from './SessionHistory';
-import SessionSetup from './SessionSetup';
-import StageASummary from './StageASummary';
+import WordToImage from './WordToImage';
 
 function App() {
+  const [user, setUser] = useState(null);
 
-  return (
-    <>
-    {/* <WordToImage />
-    <ImageToWord /> */}
-    {/* <Login /> */}
-    {/* <NonwordsBoard />
-    <PhonologicalAwareness />
-    <SentencesBoard />
-    <SessionHistory />
-    <SessionSetup />
-    <StageASummary /> */}
-    <WordToImage />
-    </>
-  ) 
+  if (!user) {
+    return <Login onSuccess={setUser} />;
+  }
+
+  if (user.role === 'admin') {
+    return (
+      <main dir="rtl">
+        <h1>שלום, מנהל/ת</h1>
+        <p>ההתחברות כמנהל הצליחה. בשלב הבא נוסיף כאן ניהול מורות.</p>
+      </main>
+    );
+  }
+
+  return <WordToImage />;
 }
 
-export default App
+export default App;
