@@ -1,0 +1,144 @@
+.login-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+    direction: rtl;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding: 20px;
+}
+
+.login-form {
+    background: #ffffff;
+    padding: 35px 30px;
+    border-radius: 20px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
+    width: 100%;
+    max-width: 420px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+/* כותרת ואייקון */
+.login-welcome-header {
+    margin-bottom: 22px;
+}
+
+.icon-wrapper {
+    font-size: 48px;
+    margin-bottom: 8px;
+    line-height: 1;
+}
+
+.login-welcome-header h1 {
+    font-size: 28px;
+    color: #1e293b;
+    margin: 6px 0;
+    font-weight: 800;
+}
+
+.welcome-instructions {
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.4;
+    margin: 0;
+}
+
+/* שדות הזנה כלליים */
+.form-group {
+    margin-bottom: 12px;
+    text-align: right;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 4px;
+    color: #334155;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 14px;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    background-color: #ffffff;
+}
+
+.form-group input:focus {
+    border-color: #3b82f6;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+/* חלק 1: פרטי המורה והסיסמה - מראה סולידי ועדין */
+.teacher-credentials-section {
+    margin-bottom: 16px;
+}
+
+/* חלק 2: שם התלמיד/ה - מובלט בעדינות */
+.student-input-section {
+    margin-bottom: 18px;
+    padding-top: 8px;
+}
+
+.student-field label {
+    color: #1e40af;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.student-field input {
+    border: 1.5px solid #60a5fa;
+    background-color: #f8fafc;
+    font-size: 15px;
+}
+
+/* כפתור כניסה */
+.login-button {
+    width: 100%;
+    padding: 12px;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin-top: 6px;
+}
+
+.login-button:hover {
+    background-color: #1d4ed8;
+}
+
+.login-button:active {
+    transform: scale(0.99);
+}
+
+/* הודעות שגיאה והצלחה */
+.error-message {
+    color: #dc2626;
+    margin-top: 12px;
+    font-size: 13px;
+    background-color: #fef2f2;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #fecaca;
+}
+
+.success-message {
+    color: #16a34a;
+    margin-top: 12px;
+    font-size: 13px;
+    background-color: #f0fdf4;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #bbf7d0;
+}
