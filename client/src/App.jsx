@@ -5,20 +5,28 @@ import WordToImage from './WordToImage';
 function App() {
   const [user, setUser] = useState(null);
 
+  function handleLogout() {
+    sessionStorage.removeItem('accessToken');
+    setUser(null);
+  }
+
   if (!user) {
     return <Login onSuccess={setUser} />;
   }
 
-  if (user.role === 'admin') {
+  if (user.role !== 'teacher') {
     return (
       <main dir="rtl">
-        <h1>שלום, מנהל/ת</h1>
-        <p>ההתחברות כמנהל הצליחה. בשלב הבא נוסיף כאן ניהול מורות.</p>
+        <p>המערכת מיועדת למורות בלבד.</p>
+        <button onClick={handleLogout}>חזרה לכניסה</button>
       </main>
     );
   }
 
-  return <WordToImage />;
+  return (
+    <WordToImage studentName={user.studentName} />
+    
+  )
 }
 
 export default App;

@@ -1,54 +1,68 @@
-//const bcrypt = require("bcrypt")
-const jwt= require('jsonwebtoken')
-const Student = require("../models/readingModel").Student
+const mongoose = require("mongoose");
+const { Student, Session } = require("../models/readingModel");
 
-// const login = async (req, res) => {
-//     try {
-//         const { email, password } = req.body
-//         const student = await Student.findOne({ email }).select("+password")
+const createSession = async (req, res) => {
+    try {
+        if (req.user?.role !== "teacher") {
+            return res.status(403).json({ message: "Only teachers can start a session" });
+        }
 
-//         if (!student) {
-//             return res.status(404).json({ message: "Student not found" })
-//         }
+        const { studentId } = req.body;
 
-//         const isMatch = await bcrypt.compare(password, student.password)
+        if (!mongoose.isValidObjectId(studentId)) {
+            return res.status(400).json({ message: "Valid studentId is required" });
+        }
 
-//         if (!isMatch) {
-//             return res.status(401).json({ message: "Invalid credentials" })
-//         }
+        const student = await Student.findOne({
+            _id: studentId,
+            teacherId: req.user.sub
+        });
 
-//         res.status(200).json({ message: "Login successful" })
-//     } catch (error) {
-//         res.status(500).json({ message: error.message })
-//     }
-// }
+        if (!student) {
+            return res.status(404).json({ message: "Student not found for this teacher" });
+        }
+        
+        const session = await Session.create({
+            studentId: student._id,
+            examinerId: req.user.sub,
+            status: "in_progress"
+        });
+
+        return res.status(201).json({ session });
+    } catch (error) {
+        console.error("Could not create session:", error);
+        return res.status(500).json({ message: "Could not create session" });
+    }
+};
 
 const checkStatus = async (req, res) => {
     try {
-        const student = await Student.findById(req.params.id)
-        if (!student) {
-            return res.status(404).json({ message: "Student not found" })
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({ message: "Valid session ID is required" });
         }
-        res.status(200).json({ message: "Student status checked successfully" })
-    } catch (error) {
-        res.status(500).json({ message: error.message })
-    }
-}   
 
-const logout = async (req, res) => {
-    try {
-        const student = await Student.findById(req.params.id)   
-        if (!student) {
-            return res.status(404).json({ message: "Student not found" })
+        const session = await Session.findById(req.params.id);
+
+        if (!session) {
+            return res.status(404).json({ message: "Session not found" });
         }
-        res.status(200).json({ message: "Logout successful" })
+
+        const isAdmin = req.user?.role === "admin";
+        const isSessionTeacher =
+            session.examinerId.toString() === req.user?.sub;
+
+        if (!isAdmin && !isSessionTeacher) {
+            return res.status(403).json({ message: "Access denied" });
+        }
+
+        return res.status(200).json({ status: session.status, session });
     } catch (error) {
-        res.status(500).json({ message: error.message })
+        console.error("Could not check session status:", error);
+        return res.status(500).json({ message: "Could not check session status" });
     }
-}   
+};
 
 module.exports = {
-   // login,
-    checkStatus,
-    logout
-}
+    createSession,
+    checkStatus
+};

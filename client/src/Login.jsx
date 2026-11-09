@@ -35,7 +35,7 @@ const Login = ({ onSuccess }) => {
       }
 
       sessionStorage.setItem('accessToken', data.accessToken);
-      onSuccess(data.teacher);
+      onSuccess({ ...data.teacher, studentName });
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : 'אירעה שגיאה בהתחברות'

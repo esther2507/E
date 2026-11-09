@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt')
-const jwt= require('jsonwebtoken')
+const jwt = require('jsonwebtoken')
 const Teacher = require('../models/readingModel').Teacher
 
 const createTeacher = async (req, res) => {
@@ -12,7 +12,9 @@ const createTeacher = async (req, res) => {
             password: hashedPassword
         })
         await teacher.save()
-        res.status(201).json(teacher)
+        const teacherObj = teacher.toObject()
+        delete teacherObj.password
+        res.status(201).json(teacherObj)
     } catch (error) {
         res.status(500).json({ message: error.message })
     }
@@ -21,7 +23,7 @@ const createTeacher = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { username, password } = req.body
-    if (!username || !password) {
+        if (!username || !password) {
             return res.status(400).json({ message: "Username and password are required" })
         }
         if (!process.env.ACCESS_TOKEN_SECRET) {
@@ -55,7 +57,7 @@ const login = async (req, res) => {
 
         return res.status(500).json({ message: "Login failed" })
     }
-}  
+}
 
 const getTeachers = async (req, res) => {
     try {
@@ -64,19 +66,19 @@ const getTeachers = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message })
     }
-}   
+}
 
 const getTeacherById = async (req, res) => {
     try {
-        const teacher = await Teacher.findById(req.params.id)   
-        if (!teacher) {    
+        const teacher = await Teacher.findById(req.params.id)
+        if (!teacher) {
             return res.status(404).json({ message: "Teacher not found" })
         }
         res.status(200).json(teacher)
     } catch (error) {
         res.status(500).json({ message: error.message })
     }
-}   
+}
 const updateTeacher = async (req, res) => {
     try {
         const { Teachername, username, password } = req.body
@@ -95,7 +97,7 @@ const updateTeacher = async (req, res) => {
         res.status(200).json(teacher)
     } catch (error) {
         res.status(500).json({ message: error.message })
-    }         
+    }
 }
 const deleteTeacher = async (req, res) => {
     try {

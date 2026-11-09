@@ -1,12 +1,10 @@
-const express = require("express")
-const router = express.Router()
-const verifyJWT = require("../middleware/verifyJWT")
-const SessionController = require("../controllers/SessionController")
+const express = require("express");
+const router = express.Router();
+const verifyJWT = require("../middleware/verifyJWT");
+const SessionController = require("../controllers/SessionController");
 
-//router.post("/Sessions", SessionController.login)
-router.get("/Sessions", verifyJWT, SessionController.checkStatus)
-router.get("/Sessions", verifyJWT, SessionController.logout)
+router.post("/Sessions", verifyJWT, SessionController.createSession);
 
-module.exports = router
+router.get("/Sessions/:id", verifyJWT, SessionController.checkStatus);
 
- 
+module.exports = router;

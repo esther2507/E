@@ -1,6 +1,5 @@
 const mongoose = require('mongoose')
 //const Schema = mongoose.Schema
-
 const TeacherSchema = new mongoose.Schema({
     Teachername: {
         type: String,
@@ -17,21 +16,21 @@ const TeacherSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
-     password: {
-            type: String,
-            required: true,
-            select: false
+    password: {
+        type: String,
+        required: true,
+        select: false
     },
     role: {
-    type: String,
-    enum: ['admin', 'teacher'],
-    default: 'teacher',
-    required: true
-},
+        type: String,
+        enum: ['admin', 'teacher'],
+        default: 'teacher',
+        required: true
+    },
 
 });
 
-const StudentSchema = new mongoose.Schema({ 
+const StudentSchema = new mongoose.Schema({
     Studentname: {
         type: String,
         required: true,
@@ -44,7 +43,7 @@ const StudentSchema = new mongoose.Schema({
     },
     createdAt: {
         type: Date,
-        default: Date.now 
+        default: Date.now
     },
     teacherId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -60,7 +59,7 @@ const sessionSchema = new mongoose.Schema({
         required: true
     },
     examinerId: {
-        type: mongoose.Schema.Types.ObjectId, 
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'Teacher',
         required: true
     },
@@ -71,8 +70,8 @@ const sessionSchema = new mongoose.Schema({
     },
     startedAt: {
         type: Date,
-        default: Date.now, 
-    }, 
+        default: Date.now,
+    },
     completedAt: {
         type: Date
     }
@@ -91,7 +90,7 @@ const boardSchema = new mongoose.Schema({
     title: {
         type: String,
         required: true
-    }, 
+    },
     layout: {
         rows: Number,
         cols: Number
@@ -108,7 +107,7 @@ const contentItemSchema = new mongoose.Schema({
         type: String,
         enum: ['letter', 'combo', 'word', 'nonword', 'sentence', 'cloze'],
         required: true
-    }, 
+    },
     text: {
         type: String,
         required: true
@@ -132,34 +131,33 @@ const contentItemSchema = new mongoose.Schema({
 const itemResultSchema = new mongoose.Schema({
     sessionId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Session',
+        ref: "Session",
         required: true
     },
-    itemId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'ContentItem',
+    stageIndex: {
+        type: Number,
         required: true
-    }, 
+    },
+    questionId: {
+        type: Number,
+        required: true
+    },
+    selectedOptionId: {
+        type: Number,
+        required: true
+    },
+    selectedValue: {
+        type: String,
+        default: ""
+    },
     result: {
         type: String,
-        enum: ['correct', 'incorrect', 'self_corrected'],
+        enum: ["correct", "incorrect"],
         required: true
     },
-    childSaid: { type: String }, 
-    errorType: { type: String },
-    mode: {
-        type: String,
-        enum: ['naming', 'recognition'],
-        default: 'naming'
-    },
-    readingStrategy: {
-        type: String,
-        enum: ['decoding', 'global']
-    }, 
-    durationMs: { type: Number }, 
-    hesitation: {
-        type: Boolean,
-        default: false
+    createdAt: {
+        type: Date,
+        default: Date.now
     }
 });
 
@@ -173,11 +171,11 @@ const aiReportSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    metricsJson: { 
+    metricsJson: {
         type: Object,
         required: true
     },
-    aiOutputJson: { 
+    aiOutputJson: {
         type: Object,
         required: true
     },
@@ -199,12 +197,12 @@ const ContentItem = mongoose.model('ContentItem', contentItemSchema);
 const ItemResult = mongoose.model('ItemResult', itemResultSchema);
 const AiReport = mongoose.model('AiReport', aiReportSchema);
 
-module.exports = { 
-    Teacher, 
-    Student, 
-    Session, 
-    Board, 
-    ContentItem, 
-    ItemResult, 
-    AiReport 
+module.exports = {
+    Teacher,
+    Student,
+    Session,
+    Board,
+    ContentItem,
+    ItemResult,
+    AiReport
 }
