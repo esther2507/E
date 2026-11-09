@@ -26,7 +26,7 @@ import image24 from './assets/chair/image24.png'
 
 import './WordToImage.css';
 
-const WordToImage = ({ sessionId }) => {
+const WordToImage = ({ onComplate }) => {
     // const [saveError, setSaveError] = useState('');
     // const [isSaving, setIsSaving] = useState(false);
     const groups = [
@@ -173,8 +173,8 @@ const WordToImage = ({ sessionId }) => {
                 setCurrentGroupIndex(currentGroupIndex + 1);
                 setCurrentQuestionIndex(0);
             } else {
-                setCurrentGroupIndex(0);
-                setCurrentQuestionIndex(0);
+                onComplate()
+                return
             }
 
             setSelectedOptionId(null);

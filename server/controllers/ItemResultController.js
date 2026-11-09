@@ -3,8 +3,6 @@ const { ItemResult, Session } = require("../models/readingModel");
 const bcrypt = require("bcrypt")
 const jwt= require('jsonwebtoken')
 const e = require("express")
-const ItemResult = require("../models/readingModel").ItemResult
-const { Session } = require("../models/readingModel");
 
 const answerKey = {
     "0:1": 3,
