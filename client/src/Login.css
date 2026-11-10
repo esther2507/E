@@ -122,6 +122,29 @@
     transform: scale(0.99);
 }
 
+.show-result {
+    width: 100%;
+    padding: 12px;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin-top: 6px;
+}
+
+.show-result:hover {
+    background-color: #1d4ed8;
+}
+
+.login-button:active {
+    transform: scale(0.99);
+}
+
+
 /* הודעות שגיאה והצלחה */
 .error-message {
     color: #dc2626;

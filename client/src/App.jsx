@@ -4,6 +4,7 @@ import WordToImage from './WordToImage';
 import LettersBoard from './LettersBoard';
 import CombosBoard from './CombosBoard';
 import NonwordsBoard from './NonwordsBoard';
+import SessionHistory from './SessionHistory';
 import './App.css'
 
 function App() {
@@ -23,9 +24,15 @@ function App() {
     return (
       <main dir="rtl">
         <p>המערכת מיועדת למורות בלבד.</p>
-        <button onClick={handleLogout}>חזרה לכניסה</button>
+        <button className="button-end" onClick={handleLogout}>
+          חזרה לכניסה
+        </button>
       </main>
     );
+  }
+
+  if (user.view === 'results') {
+    return <SessionHistory onBack={handleLogout} />;
   }
 
   return (
@@ -37,8 +44,8 @@ function App() {
       {stage === 'letters' && (
         <LettersBoard onComplete={() => useStage('combos')} />
       )}
-      {stage == 'combos' &&(
-        <CombosBoard onComplete={() => useStage('nonwords')} /> 
+      {stage == 'combos' && (
+        <CombosBoard onComplete={() => useStage('nonwords')} />
       )}
       {stage == 'nonwords' && <NonwordsBoard />}
 

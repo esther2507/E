@@ -21,3 +21,25 @@
   outline: 3px solid #93c5fd;
   outline-offset: 3px;
 }
+.access-denied-back-button {
+  display: block;
+  margin: 24px auto;
+  padding: 11px 22px;
+  border: 0;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.access-denied-back-button:hover {
+  background: #1d4ed8;
+}
+
+.access-denied-back-button:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 3px;
+}

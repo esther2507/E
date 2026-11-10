@@ -49,7 +49,11 @@ const StudentSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Teacher',
         required: true
-    }
+    },
+    age: {
+        type: Number,
+        min: 0
+    },
 });
 
 const sessionSchema = new mongoose.Schema({

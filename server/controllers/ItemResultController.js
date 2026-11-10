@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const { ItemResult, Session } = require("../models/readingModel");
 const bcrypt = require("bcrypt")
-const jwt= require('jsonwebtoken')
+const jwt = require('jsonwebtoken')
 const e = require("express")
 
 const answerKey = {
@@ -71,10 +71,15 @@ const createItemResult = async (req, res) => {
 
 const getItemResults = async (req, res) => {
     try {
-        if (req.user?.role !== "teacher") {
-            return res.status(403).json({ message: "Teacher access required" });
-        }
+        const role = req.user?.role;
 
+        if (!["teacher", "admin"].includes(role)) {
+            return res.status(403).json({ message: "Access denied" });
+        }
+        if (role === "admin") {
+            const results = await ItemResult.find().lean();
+            return res.json(results);
+        }
         const sessions = await Session.find({ examinerId: req.user.sub })
             .select("_id")
             .lean();
@@ -87,7 +92,7 @@ const getItemResults = async (req, res) => {
 
         return res.json(results);
     } catch (error) {
-        console.error("Could not load teacher results:", error);
+        console.error("Could not load results:", error);
         return res.status(500).json({ message: "Could not load results" });
     }
 };
@@ -102,7 +107,7 @@ const getItemResultById = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message })
     }
-}   
+}
 
 const updateItemResult = async (req, res) => {
     try {
@@ -119,7 +124,7 @@ const updateItemResult = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message })
     }
-}     
+}
 
 const deleteItemResult = async (req, res) => {
     try {
@@ -131,7 +136,7 @@ const deleteItemResult = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message })
     }
-}   
+}
 
 module.exports = {
     createItemResult,

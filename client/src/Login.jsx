@@ -7,12 +7,12 @@ const Login = ({ onSuccess }) => {
   const [studentName, setStudentName] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleLogin = async (e, view = 'activity') => {
+    e?.preventDefault();
     setErrorMessage('');
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('/api/TeacherRoutes/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -20,7 +20,6 @@ const Login = ({ onSuccess }) => {
         body: JSON.stringify({
           username: teacherUsername,
           password,
-          studentName,
         }),
       });
 
@@ -34,8 +33,8 @@ const Login = ({ onSuccess }) => {
         throw new Error('לא התקבל אסימון התחברות מהשרת');
       }
 
-      sessionStorage.setItem('accessToken', data.accessToken);
-      onSuccess({ ...data.teacher, studentName });
+      localStorage.setItem('accessToken', data.accessToken);
+      onSuccess({ ...data.teacher, studentName, view });
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : 'אירעה שגיאה בהתחברות'
@@ -96,6 +95,13 @@ const Login = ({ onSuccess }) => {
 
         <button type="submit" className="login-button">
           התחל פעילות
+        </button>
+        <button
+          type="button"
+          className="show-result"
+          onClick={() => handleLogin(null, 'results')}
+        >
+          לצפייה בתוצאות
         </button>
 
         {errorMessage && <p className="error-message">{errorMessage}</p>}

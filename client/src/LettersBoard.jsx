@@ -4,8 +4,7 @@ import './LettersBoard.css';
 
 export default function LettersBoard({ onComplete }) {
   const [boardType, setBoardType] = useState('ordered');
-  const currentLetters =
-    boardType === 'ordered' ? lettersOrdered : lettersRandom;
+  const currentLetters = boardType === 'ordered' ? lettersOrdered : lettersRandom;
 
   return (
     <div className="board-container">
