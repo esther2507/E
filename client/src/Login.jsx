@@ -12,7 +12,7 @@ const Login = ({ onSuccess }) => {
     setErrorMessage('');
 
     try {
-      const response = await fetch('/api/TeacherRoutes/login', {
+      const loginResponse = await fetch('/api/TeacherRoutes/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -23,9 +23,9 @@ const Login = ({ onSuccess }) => {
         }),
       });
 
-      const data = await response.json();
+      const data = await loginResponse.json();
 
-      if (!response.ok) {
+      if (!loginResponse.ok) {
         throw new Error(data.message || 'התחברות נכשלה');
       }
 
@@ -34,7 +34,53 @@ const Login = ({ onSuccess }) => {
       }
 
       localStorage.setItem('accessToken', data.accessToken);
-      onSuccess({ ...data.teacher, studentName, view });
+
+      if (view === 'results') {
+        onSuccess({ ...data.teacher, studentName, view });
+        return;
+      }
+
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${data.accessToken}`,
+      };
+
+      const studentResponse = await fetch('/api/StudentRoutes', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          Studentname: studentName,
+          organization: 'לא צוין',
+        }),
+      });
+
+      const student = await studentResponse.json();
+
+      if (!studentResponse.ok) {
+        throw new Error(student.message || 'יצירת תלמיד נכשלה');
+      }
+
+      const sessionResponse = await fetch('/api/SessionRoutes/Sessions', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          studentId: student._id,
+        }),
+      });
+
+      const sessionData = await sessionResponse.json();
+
+      if (!sessionResponse.ok) {
+        throw new Error(sessionData.message || 'פתיחת מפגש נכשלה');
+      }
+
+      onSuccess({
+        ...data.teacher,
+        studentName,
+        view,
+        studentId: student._id,
+        sessionId: sessionData.session._id,
+      });
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : 'אירעה שגיאה בהתחברות'
@@ -96,6 +142,7 @@ const Login = ({ onSuccess }) => {
         <button type="submit" className="login-button">
           התחל פעילות
         </button>
+
         <button
           type="button"
           className="show-result"
