@@ -138,8 +138,8 @@ const itemResultSchema = new mongoose.Schema({
         ref: "Session",
         required: true
     },
-    stageIndex: {
-        type: Number,
+    questionGroup: {
+        type: String,
         required: true
     },
     questionId: {
@@ -156,7 +156,7 @@ const itemResultSchema = new mongoose.Schema({
     },
     result: {
         type: String,
-        enum: ["correct", "incorrect"],
+        enum: ["correct", "incorrect", "self_corrected"],
         required: true
     },
     createdAt: {

@@ -9,7 +9,7 @@ import './App.css'
 
 function App() {
   const [user, setUser] = useState(null);
-  const [stage, useStage] = useState('word')
+  const [stage, setStage] = useState('word')
   const [completionError, setCompletionError] = useState('');
 
   function handleLogout() {
@@ -68,13 +68,14 @@ function App() {
       {completionError && <p role="alert">{completionError}</p>}
       {stage == 'word' && (
         <WordToImage studentName={user.studentName}
-          onComplate={() => useStage('letters')} />
+          sessionId={user.sessionId}
+          onComplate={() => setStage('letters')} />
       )}
       {stage === 'letters' && (
-        <LettersBoard onComplete={() => useStage('combos')} />
+        <LettersBoard onComplete={() => setStage('combos')} />
       )}
       {stage == 'combos' && (
-        <CombosBoard onComplete={() => useStage('nonwords')} />
+        <CombosBoard onComplete={() => setStage('nonwords')} />
       )}
       {/* {stage == 'nonwords' && <NonwordsBoard />} */}
 

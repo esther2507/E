@@ -1,3 +1,4 @@
+require('dotenv').config()
 const mongoose = require('mongoose')
 const bcrypt = require('bcrypt')
 const Teacher = require('./models/readingModel').Teacher
@@ -15,23 +16,31 @@ async function seedFirstTeacher() {
         )
     }
 
-    await mongoose.connect('mongodb://localhost:27017/myapp')
+    if (!process.env.DATABASE_URI) {
+        throw new Error('DATABASE_URI is not configured.')
+    }
+
+    await mongoose.connect(process.env.DATABASE_URI)
 
     const hashedPassword = await bcrypt.hash(SEED_TEACHER_PASSWORD, 10)
 
-    await Teacher.create({
-        Teachername: SEED_TEACHER_NAME,
-        username: SEED_TEACHER_USERNAME,
-        password: hashedPassword,
-        role: 'admin'
-    })
+    await Teacher.findOneAndUpdate(
+        { username: SEED_TEACHER_USERNAME },
+        {
+            Teachername: SEED_TEACHER_NAME,
+            username: SEED_TEACHER_USERNAME,
+            password: hashedPassword,
+            role: 'admin'
+        },
+        { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
+    )
 
-    console.log('First admin created successfully.')
+    console.log('Admin account is ready.')
 }
 
 seedFirstTeacher()
     .catch((error) => {
-        console.error('Could not create or update the first teacher:', error.message)
+        console.error('Could not create or update the admin account:', error.message)
         process.exitCode = 1
     })
     .finally(async () => {

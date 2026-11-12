@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import image from './assets/shulamit/image1.png'
 import image2 from './assets/shulamit/image2.png'
 import image3 from './assets/shulamit/image3.png'
@@ -18,15 +18,15 @@ import image16 from './assets/spoon/image16.png'
 import image17 from './assets/spoon/image17.png'
 import image18 from './assets/spoon/image18.png'
 import image19 from './assets/sheep/image19.png'
-import image20 from './assets/sheep/image19.png'
-import image21 from './assets/sheep/image19.png'
+import image20 from './assets/sheep/image20.png'
+import image21 from './assets/sheep/image21.png'
 import image22 from './assets/chair/image22.png'
 import image23 from './assets/chair/image23.png'
 import image24 from './assets/chair/image24.png'
 
 import './WordToImage.css';
 
-const WordToImage = ({ onComplate }) => {
+const WordToImage = ({ onComplate, sessionId }) => {
     // const [saveError, setSaveError] = useState('');
     // const [isSaving, setIsSaving] = useState(false);
     const groups = [
@@ -110,9 +110,9 @@ const WordToImage = ({ onComplate }) => {
                     id: 8,
                     sentence: "סַמֵּן אֶת הַכַּף הַבֵּינוֹנִית",
                     options: [
-                        { id: 1, imageSrc: image16, isCorrect: false },
+                        { id: 1, imageSrc: image16, isCorrect: true },
                         { id: 2, imageSrc: image17, isCorrect: false },
-                        { id: 3, imageSrc: image18, isCorrect: true }
+                        { id: 3, imageSrc: image18, isCorrect: false }
                     ]
                 },
                 {
@@ -136,36 +136,49 @@ const WordToImage = ({ onComplate }) => {
             ]
         },
     ];
-    const [currentGroupIndex, setCurrentGroupIndex] = useState(0)
-    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
-    // const [currentGroupIndex, setCurrentGroupIndex] = useState(() => {
-    //     const savedGroup = localStorage.getItem('currentGroupIndex');
-    //     const parsed = savedGroup !== null ? parseInt(savedGroup, 10) : 0;
-    //     return (parsed >= 0 && parsed < groups.length) ? parsed : 0;
-    // });
-
-    // const [currentQuestionIndex, setCurrentQuestionIndex] = useState(() => {
-    //     const savedIndex = localStorage.getItem('currentQuestionIndex');
-    //     const parsed = savedIndex !== null ? parseInt(savedIndex, 10) : 0;
-    //     return parsed >= 0 ? parsed : 0;
-    // });
+    const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
     const [selectedOptionId, setSelectedOptionId] = useState(null);
     const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false);
 
-    useEffect(() => {
-        localStorage.setItem('currentGroupIndex', currentGroupIndex);
-        localStorage.setItem('currentQuestionIndex', currentQuestionIndex);
-    }, [currentGroupIndex, currentQuestionIndex]);
-
     const activeGroup = groups[currentGroupIndex] || groups[0];
     const currentQuestion = activeGroup.questions[currentQuestionIndex] || activeGroup.questions[0];
+    const sizeOptionScales = [
+        [0.72, 1.15, 0.82],
+        [0.78, 1.15, 0.52],
+        [1.12, 0.62, 0.88]
+    ];
 
-    const handleSelect = (option) => {
+    const handleSelect = async (option) => {
         if (isAnswerSubmitted) return;
 
         setSelectedOptionId(option.id);
         setIsAnswerSubmitted(true);
+
+        try {
+            const response = await fetch('/api/ItemResultRoutes/itemresults', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+                },
+                body: JSON.stringify({
+                    sessionId,
+                    questionGroup: String(currentGroupIndex),
+                    questionId: currentQuestion.id,
+                    selectedOptionId: option.id,
+                    selectedValue: option.sentence || '',
+                    result: option.isCorrect ? 'correct' : 'incorrect'
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('שמירת התשובה נכשלה');
+            }
+        } catch (error) {
+            console.error('Could not save answer:', error);
+        }
 
         setTimeout(() => {
             if (currentQuestionIndex + 1 < activeGroup.questions.length) {
@@ -231,6 +244,9 @@ return (
                     let cardClassName = hasSentenceOnTop
                         ? "image-card"
                         : "sentence-option-card";
+                    const imageScale = currentGroupIndex === 2
+                        ? sizeOptionScales[currentQuestionIndex]?.[option.id - 1] ?? 1
+                        : 1;
 
                     if (isAnswerSubmitted) {
                         if (option.id === selectedOptionId) {
@@ -258,7 +274,11 @@ return (
                         >
                             {hasSentenceOnTop ? (
                                 <div className="image-frame">
-                                    <img src={option.imageSrc} alt="אפשרות בחירה" />
+                                    <img
+                                        src={option.imageSrc}
+                                        alt="אפשרות בחירה"
+                                        style={{ transform: `scale(${imageScale})` }}
+                                    />
                                 </div>
                             ) : (
                                 <span style={{

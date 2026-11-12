@@ -87,6 +87,154 @@
   color: #64748b;
 }
 
+.management-section,
+.teacher-group,
+.teacher-workspace,
+.student-record {
+  width: min(100%, 960px);
+  margin: 0 auto 24px;
+}
+
+.management-section {
+  padding: 20px 0;
+  border-top: 1px solid rgba(51, 65, 85, 0.18);
+  border-bottom: 1px solid rgba(51, 65, 85, 0.18);
+}
+
+.management-section h2,
+.teacher-workspace h2,
+.student-record h3 {
+  margin: 0 0 16px;
+  font-size: 19px;
+}
+
+.management-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.management-form label {
+  display: grid;
+  gap: 6px;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.management-form input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid #94a3b8;
+  border-radius: 6px;
+  background: #fff;
+  color: #1e293b;
+  font: inherit;
+}
+
+.management-form input:focus-visible,
+.student-list-item:focus-visible,
+.teacher-group summary:focus-visible {
+  outline: 3px solid #0f766e;
+  outline-offset: 2px;
+}
+
+.management-form .button-end {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.teacher-group {
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.teacher-group summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  color: #1e293b;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.teacher-group summary span {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.teacher-group > .session-history-table-wrap,
+.teacher-group > .session-history-empty {
+  width: 100%;
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.teacher-workspace {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.student-list {
+  display: grid;
+  border-top: 1px solid #cbd5e1;
+}
+
+.student-list-item {
+  width: 100%;
+  padding: 13px 10px;
+  border: 0;
+  border-bottom: 1px solid #cbd5e1;
+  background: transparent;
+  color: #1e293b;
+  font: inherit;
+  text-align: right;
+  cursor: pointer;
+}
+
+.student-list-item:hover,
+.student-list-item.selected {
+  background: #dbeafe;
+}
+
+.student-record {
+  width: 100%;
+}
+
+.student-record-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.student-record-header h2 {
+  margin: 0;
+}
+
+.student-record-header .button-end {
+  margin: 0;
+}
+
+.session-answer-list {
+  margin: 8px 0 0;
+  padding-right: 20px;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
 @media (max-width: 600px) {
   .session-history {
     padding: 24px 16px;
@@ -100,5 +248,19 @@
 
   .session-history-header h1 {
     font-size: 24px;
+  }
+
+  .management-form,
+  .teacher-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .management-form .button-end {
+    width: 100%;
+  }
+
+  .student-record-header {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

@@ -6,6 +6,7 @@ const studentController = require("../controllers/StudentController");
 router.post("/", verifyJWT, studentController.createStudent);
 router.get("/", verifyJWT, studentController.getStudents);
 router.get("/summary", verifyJWT, studentController.getStudentSummary);
+router.get("/:id/sessions", verifyJWT, studentController.getStudentSessions);
 router.get("/:id", verifyJWT, studentController.getStudentById);
 router.put("/:id", verifyJWT, studentController.updateStudent);
 router.delete("/:id", verifyJWT, studentController.deleteStudent);

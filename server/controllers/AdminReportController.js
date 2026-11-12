@@ -15,8 +15,9 @@ const getReport = async (req, res) => {
 
         const students = await Student.find({ teacherId: { $in: teacherIds } }).lean();
         const sessions = await Session.find({ examinerId: { $in: teacherIds } }).lean();
+        const completedSessions = sessions.filter((session) => session.status === "completed");
         const results = await ItemResult.find({
-            sessionId: { $in: sessions.map((session) => session._id) }
+            sessionId: { $in: completedSessions.map((session) => session._id) }
         }).lean();
 
         const resultsBySession = new Map();
@@ -42,9 +43,29 @@ const getReport = async (req, res) => {
         for (const student of students) {
             const teacherKey = student.teacherId.toString();
             const existing = studentsByTeacher.get(teacherKey) || [];
+            const studentSessions = sessionsByStudent.get(student._id.toString()) || [];
+            const lastCompletedSession = studentSessions
+                .filter((session) => session.status === "completed")
+                .sort((first, second) =>
+                    new Date(second.completedAt || second.startedAt) -
+                    new Date(first.completedAt || first.startedAt)
+                )[0];
+            const answerCount = lastCompletedSession?.results.length ?? 0;
+            const score = lastCompletedSession
+                ? answerCount
+                    ? Math.round(
+                        (lastCompletedSession.results.filter((answer) => answer.result === "correct").length /
+                            answerCount) *
+                        100
+                    )
+                    : 0
+                : null;
+
             existing.push({
                 ...student,
-                sessions: sessionsByStudent.get(student._id.toString()) || []
+                sessions: studentSessions,
+                score,
+                lastExamDate: lastCompletedSession?.completedAt ?? null
             });
             studentsByTeacher.set(teacherKey, existing);
         }

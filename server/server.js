@@ -36,9 +36,6 @@ app.get("/", (req, res) => {
    res.send("This is home page")
 })
 
-// app.listen(PORT, () => {
-//    console.log(`Server run on ${PORT}`)
-// })
 
 mongoose.connection.once('open', () => {
     console.log('Connected to MongoDB')
@@ -47,3 +44,10 @@ mongoose.connection.once('open', () => {
 mongoose.connection.on('error', err => {
     console.log(err)
 })
+
+
+// DATABASE_URI=mongodb://localhost:27017/329693279_2026
+// ACCESS_TOKEN_SECRET=70071ebe26415bdeaa9566b62201269def91a452462e2920d52b0e73f4c3ffcf6380508c2939e2fd2ec0efe5e62ca9e6b7a50dd191ccf7d03caa574735ecc513
+// SEED_TEACHER_NAME=ester
+// SEED_TEACHER_USERNAME=eis
+// SEED_TEACHER_PASSWORD=estereis3311

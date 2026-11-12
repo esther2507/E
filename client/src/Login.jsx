@@ -5,6 +5,7 @@ const Login = ({ onSuccess }) => {
   const [teacherUsername, setTeacherUsername] = useState('');
   const [password, setPassword] = useState('');
   const [studentName, setStudentName] = useState('');
+  const [authenticatedAdmin, setAuthenticatedAdmin] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleLogin = async (e, view = 'activity') => {
@@ -12,6 +13,11 @@ const Login = ({ onSuccess }) => {
     setErrorMessage('');
 
     try {
+      if (authenticatedAdmin) {
+        onSuccess({ ...authenticatedAdmin, view: 'admin' });
+        return;
+      }
+
       const loginResponse = await fetch('/api/TeacherRoutes/login', {
         method: 'POST',
         headers: {
@@ -35,9 +41,18 @@ const Login = ({ onSuccess }) => {
 
       localStorage.setItem('accessToken', data.accessToken);
 
-      if (view === 'results') {
-        onSuccess({ ...data.teacher, studentName, view });
+      if (data.teacher.role === 'admin') {
+        setAuthenticatedAdmin(data.teacher);
         return;
+      }
+
+      if (view === 'results') {
+        onSuccess({ ...data.teacher, view });
+        return;
+      }
+
+      if (!studentName.trim()) {
+        throw new Error('יש להזין שם תלמיד/ה');
       }
 
       const headers = {
@@ -49,13 +64,12 @@ const Login = ({ onSuccess }) => {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          Studentname: studentName,
+          Studentname: studentName.trim(),
           organization: 'לא צוין',
         }),
       });
 
       const student = await studentResponse.json();
-
       if (!studentResponse.ok) {
         throw new Error(student.message || 'יצירת תלמיד נכשלה');
       }
@@ -63,13 +77,10 @@ const Login = ({ onSuccess }) => {
       const sessionResponse = await fetch('/api/SessionRoutes/Sessions', {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          studentId: student._id,
-        }),
+        body: JSON.stringify({ studentId: student._id }),
       });
 
       const sessionData = await sessionResponse.json();
-
       if (!sessionResponse.ok) {
         throw new Error(sessionData.message || 'פתיחת מפגש נכשלה');
       }
@@ -134,19 +145,20 @@ const Login = ({ onSuccess }) => {
               placeholder="השם שלי הוא..."
               value={studentName}
               onChange={(e) => setStudentName(e.target.value)}
-              required
+              disabled={Boolean(authenticatedAdmin)}
             />
           </div>
         </div>
 
         <button type="submit" className="login-button">
-          התחל פעילות
+          {authenticatedAdmin ? 'כניסה לניהול' : 'התחל פעילות'}
         </button>
 
         <button
           type="button"
           className="show-result"
           onClick={() => handleLogin(null, 'results')}
+          disabled={Boolean(authenticatedAdmin)}
         >
           לצפייה בתוצאות
         </button>

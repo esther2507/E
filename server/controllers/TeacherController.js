@@ -9,7 +9,8 @@ const createTeacher = async (req, res) => {
         const teacher = new Teacher({
             Teachername,
             username,
-            password: hashedPassword
+            password: hashedPassword,
+            role: 'teacher'
         })
         await teacher.save()
         const teacherObj = teacher.toObject()

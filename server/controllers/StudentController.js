@@ -4,6 +4,10 @@ const { Student, Session, ItemResult } = require("../models/readingModel");
 
 const createStudent = async (req, res) => {
     try {
+        if (req.user?.role !== "teacher") {
+            return res.status(403).json({ message: "Only teachers can create students" });
+        }
+
         const { Studentname, organization } = req.body
         const existingStudent = await Student.findOne({
             Studentname,
@@ -132,7 +136,7 @@ const getStudentSummary = async (req, res) => {
                             answers.length) *
                         100
                     )
-                    : null;
+                    : 0;
 
                 return {
                     studentId: student._id,
@@ -151,11 +155,50 @@ const getStudentSummary = async (req, res) => {
     }
 };
 
+const getStudentSessions = async (req, res) => {
+    try {
+        const student = await Student.findOne({
+            _id: req.params.id,
+            teacherId: req.user.sub
+        }).lean();
+
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+
+        const sessions = await Session.find({ studentId: student._id })
+            .sort({ startedAt: -1 })
+            .lean();
+
+        const sessionIds = sessions.map((session) => session._id);
+        const results = await ItemResult.find({ sessionId: { $in: sessionIds } })
+            .sort({ createdAt: 1 })
+            .lean();
+        const resultsBySession = new Map();
+
+        for (const result of results) {
+            const sessionKey = result.sessionId.toString();
+            const sessionResults = resultsBySession.get(sessionKey) || [];
+            sessionResults.push(result);
+            resultsBySession.set(sessionKey, sessionResults);
+        }
+
+        return res.json(sessions.map((session) => ({
+            ...session,
+            results: resultsBySession.get(session._id.toString()) || []
+        })));
+    } catch (error) {
+        console.error("Could not load student sessions:", error);
+        return res.status(500).json({ message: "Could not load student sessions" });
+    }
+};
+
 module.exports = {
     createStudent,
     getStudents,
     getStudentById,
     updateStudent,
     deleteStudent,
-    getStudentSummary
+    getStudentSummary,
+    getStudentSessions
 }   
