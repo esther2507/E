@@ -2,7 +2,7 @@ import React from 'react';
 import { nonwordsBoards } from '../../src/data/readingData';
 import './NonwordsBoard.css';
 
-export default function NonwordsBoard() {
+export default function NonwordsBoard({ onComplete }) {
   return (
     <div className="board-container">
       <div className="board-card">
@@ -21,6 +21,14 @@ export default function NonwordsBoard() {
             </div>
           </div>
         ))}
+
+        <button
+          type="button"
+          className="button-end"
+          onClick={onComplete}
+        >
+          סיום מבחן
+        </button>
       </div>
     </div>
   );

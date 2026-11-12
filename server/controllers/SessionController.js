@@ -62,7 +62,29 @@ const checkStatus = async (req, res) => {
     }
 };
 
+const completeSession = async (req, res) => {
+    try {
+        const session = await Session.findOne({
+            _id: req.params.id,
+            examinerId: req.user.sub
+        });
+
+        if (!session) {
+            return res.status(404).json({ message: "Session not found" });
+        }
+
+        session.status = "completed";
+        session.completedAt = new Date();
+        await session.save();
+
+        return res.status(200).json({ session });
+    } catch (error) {
+        return res.status(500).json({ message: "Could not complete session" });
+    }
+};
+
 module.exports = {
     createSession,
-    checkStatus
+    checkStatus,
+    completeSession
 };

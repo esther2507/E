@@ -10,10 +10,38 @@ import './App.css'
 function App() {
   const [user, setUser] = useState(null);
   const [stage, useStage] = useState('word')
+  const [completionError, setCompletionError] = useState('');
 
   function handleLogout() {
-    sessionStorage.removeItem('accessToken');
+    localStorage.removeItem('accessToken');
     setUser(null);
+  }
+
+  async function handleCompleteExam() {
+    setCompletionError('');
+
+    try {
+      const response = await fetch(
+        `/api/SessionRoutes/Sessions/${user.sessionId}/complete`,
+        {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+          }
+        }
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'לא ניתן לסיים את המבחן');
+      }
+
+      setUser({ ...user, view: 'results' });
+    } catch (error) {
+      setCompletionError(
+        error instanceof Error ? error.message : 'לא ניתן לסיים את המבחן'
+      );
+    }
   }
 
   if (!user) {
@@ -37,6 +65,7 @@ function App() {
 
   return (
     <>
+      {completionError && <p role="alert">{completionError}</p>}
       {stage == 'word' && (
         <WordToImage studentName={user.studentName}
           onComplate={() => useStage('letters')} />
@@ -47,9 +76,14 @@ function App() {
       {stage == 'combos' && (
         <CombosBoard onComplete={() => useStage('nonwords')} />
       )}
-      {stage == 'nonwords' && <NonwordsBoard />}
+      {/* {stage == 'nonwords' && <NonwordsBoard />} */}
+
+      {stage === 'nonwords' && (
+        <NonwordsBoard onComplete={handleCompleteExam} />
+      )}
 
     </>
+
 
   )
 }

@@ -62,7 +62,7 @@ const SessionHistory = ({ onBack }) => {
             <thead>
               <tr>
                 <th>שם התלמיד/ה</th>
-                <th>גיל</th>
+                {/* <th>גיל</th> */}
                 <th>ציון</th>
                 <th>תאריך בחינה אחרון</th>
               </tr>

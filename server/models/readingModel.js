@@ -50,10 +50,10 @@ const StudentSchema = new mongoose.Schema({
         ref: 'Teacher',
         required: true
     },
-    age: {
-        type: Number,
-        min: 0
-    },
+    // age: {
+    //     type: Number,
+    //     min: 0
+    // },
 });
 
 const sessionSchema = new mongoose.Schema({
