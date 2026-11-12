@@ -5,6 +5,17 @@ const { Student, Session, ItemResult } = require("../models/readingModel");
 const createStudent = async (req, res) => {
     try {
         const { Studentname, organization } = req.body
+        const existingStudent = await Student.findOne({
+            Studentname,
+            teacherId: req.user.sub
+        })
+
+        if (existingStudent) {
+            existingStudent.organization = organization
+            await existingStudent.save()
+            return res.status(200).json(existingStudent)
+        }
+
         // const hashedPassword = await bcrypt.hash(password, 10)
         const student = new Student({
             Studentname,

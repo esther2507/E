@@ -136,18 +136,19 @@ const WordToImage = ({ onComplate }) => {
             ]
         },
     ];
+    const [currentGroupIndex, setCurrentGroupIndex] = useState(0)
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
+    // const [currentGroupIndex, setCurrentGroupIndex] = useState(() => {
+    //     const savedGroup = localStorage.getItem('currentGroupIndex');
+    //     const parsed = savedGroup !== null ? parseInt(savedGroup, 10) : 0;
+    //     return (parsed >= 0 && parsed < groups.length) ? parsed : 0;
+    // });
 
-    const [currentGroupIndex, setCurrentGroupIndex] = useState(() => {
-        const savedGroup = localStorage.getItem('currentGroupIndex');
-        const parsed = savedGroup !== null ? parseInt(savedGroup, 10) : 0;
-        return (parsed >= 0 && parsed < groups.length) ? parsed : 0;
-    });
-
-    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(() => {
-        const savedIndex = localStorage.getItem('currentQuestionIndex');
-        const parsed = savedIndex !== null ? parseInt(savedIndex, 10) : 0;
-        return parsed >= 0 ? parsed : 0;
-    });
+    // const [currentQuestionIndex, setCurrentQuestionIndex] = useState(() => {
+    //     const savedIndex = localStorage.getItem('currentQuestionIndex');
+    //     const parsed = savedIndex !== null ? parseInt(savedIndex, 10) : 0;
+    //     return parsed >= 0 ? parsed : 0;
+    // });
 
     const [selectedOptionId, setSelectedOptionId] = useState(null);
     const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false);

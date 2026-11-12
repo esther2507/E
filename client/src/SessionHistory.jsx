@@ -39,7 +39,7 @@ const SessionHistory = ({ onBack }) => {
   return (
     <main className="session-history" dir="rtl">
       <header className="session-history-header">
-        <h1>תוצאות תלמידים</h1>
+        <h1>רשימת תלמידים</h1>
         <button
           type="button"
           className="access-denied-back-button"
@@ -71,7 +71,6 @@ const SessionHistory = ({ onBack }) => {
               {students.map((student) => (
                 <tr key={student.studentId}>
                   <td>{student.studentName}</td>
-                  <td>{student.age ?? 'לא צוין'}</td>
                   <td>{student.score ?? 'אין ציון'}</td>
                   <td>
                     {student.lastExamDate
