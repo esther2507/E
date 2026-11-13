@@ -193,6 +193,43 @@ const aiReportSchema = new mongoose.Schema({
     }
 })
 
+const readingResponseSchema = new mongoose.Schema({
+    sessionId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Session",
+        required: true
+    },
+    part: {
+        type: String,
+        enum: ["letters", "combos", "nonwords"],
+        required: true
+    },
+    boardName: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    itemIndex: {
+        type: Number,
+        required: true,
+        min: 0
+    },
+    itemText: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    responseText: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
+    }
+})
+
 const Teacher = mongoose.model('Teacher', TeacherSchema);
 const Student = mongoose.model('Student', StudentSchema);
 const Session = mongoose.model('Session', sessionSchema);
@@ -200,6 +237,7 @@ const Board = mongoose.model('Board', boardSchema);
 const ContentItem = mongoose.model('ContentItem', contentItemSchema);
 const ItemResult = mongoose.model('ItemResult', itemResultSchema);
 const AiReport = mongoose.model('AiReport', aiReportSchema);
+const ReadingResponse = mongoose.model('ReadingResponse', readingResponseSchema);
 
 module.exports = {
     Teacher,
@@ -208,5 +246,6 @@ module.exports = {
     Board,
     ContentItem,
     ItemResult,
-    AiReport
+    AiReport,
+    ReadingResponse
 }

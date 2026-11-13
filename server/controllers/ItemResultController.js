@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { ItemResult, Session } = require("../models/readingModel");
+const { ItemResult, Session, ReadingResponse } = require("../models/readingModel");
 const bcrypt = require("bcrypt")
 const jwt = require('jsonwebtoken')
 const e = require("express")
@@ -16,6 +16,61 @@ const answerKey = {
     "2:9": 2,
     "2:10": 2
 };
+const createReadingResponse = async (req, res) => {
+    try {
+        if (req.user?.role !== "teacher") {
+            return res.status(403).json({ message: "Only teachers can save reading responses" });
+        }
+
+        const {
+            sessionId,
+            part,
+            boardName,
+            itemIndex,
+            itemText,
+            responseText
+        } = req.body;
+
+        if (
+            !mongoose.isValidObjectId(sessionId) ||
+            !["letters", "combos", "nonwords"].includes(part) ||
+            typeof boardName !== "string" ||
+            !boardName.trim() ||
+            !Number.isInteger(itemIndex) ||
+            itemIndex < 0 ||
+            typeof itemText !== "string" ||
+            !itemText.trim() ||
+            typeof responseText !== "string" ||
+            !responseText.trim()
+        ) {
+            return res.status(400).json({ message: "Invalid reading response data" });
+        }
+
+        const session = await Session.findOne({
+            _id: sessionId,
+            examinerId: req.user.sub
+        });
+
+        if (!session) {
+            return res.status(404).json({ message: "Session not found for this teacher" });
+        }
+
+        const savedResponse = await ReadingResponse.create({
+            sessionId,
+            part,
+            boardName: boardName.trim(),
+            itemIndex,
+            itemText: itemText.trim(),
+            responseText: responseText.trim()
+        });
+
+        return res.status(201).json(savedResponse);
+    } catch (error) {
+        console.error("Could not save reading response:", error);
+        return res.status(500).json({ message: "Could not save reading response" });
+    }
+};
+
 const createItemResult = async (req, res) => {
     try {
         if (req.user?.role !== "teacher") {
@@ -139,6 +194,7 @@ const deleteItemResult = async (req, res) => {
 }
 
 module.exports = {
+    createReadingResponse,
     createItemResult,
     getItemResults,
     getItemResultById,

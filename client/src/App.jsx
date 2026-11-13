@@ -59,8 +59,8 @@ function App() {
     );
   }
 
-  if (user.view === 'results') {
-    return <SessionHistory onBack={handleLogout} />;
+  if (user.role === 'admin' || user.view === 'results') {
+    return <SessionHistory user={user} onBack={handleLogout} />;
   }
 
   return (
@@ -72,15 +72,15 @@ function App() {
           onComplate={() => setStage('letters')} />
       )}
       {stage === 'letters' && (
-        <LettersBoard onComplete={() => setStage('combos')} />
+        <LettersBoard sessionId={user.sessionId} onComplete={() => setStage('combos')} />
       )}
       {stage == 'combos' && (
-        <CombosBoard onComplete={() => setStage('nonwords')} />
+        <CombosBoard sessionId={user.sessionId} onComplete={() => setStage('nonwords')} />
       )}
       {/* {stage == 'nonwords' && <NonwordsBoard />} */}
 
       {stage === 'nonwords' && (
-        <NonwordsBoard onComplete={handleCompleteExam} />
+        <NonwordsBoard sessionId={user.sessionId} onComplete={handleCompleteExam} />
       )}
 
     </>

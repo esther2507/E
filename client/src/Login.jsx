@@ -5,7 +5,6 @@ const Login = ({ onSuccess }) => {
   const [teacherUsername, setTeacherUsername] = useState('');
   const [password, setPassword] = useState('');
   const [studentName, setStudentName] = useState('');
-  const [authenticatedAdmin, setAuthenticatedAdmin] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleLogin = async (e, view = 'activity') => {
@@ -13,11 +12,6 @@ const Login = ({ onSuccess }) => {
     setErrorMessage('');
 
     try {
-      if (authenticatedAdmin) {
-        onSuccess({ ...authenticatedAdmin, view: 'admin' });
-        return;
-      }
-
       const loginResponse = await fetch('/api/TeacherRoutes/login', {
         method: 'POST',
         headers: {
@@ -42,7 +36,7 @@ const Login = ({ onSuccess }) => {
       localStorage.setItem('accessToken', data.accessToken);
 
       if (data.teacher.role === 'admin') {
-        setAuthenticatedAdmin(data.teacher);
+        onSuccess({ ...data.teacher, view: 'admin' });
         return;
       }
 
@@ -145,20 +139,18 @@ const Login = ({ onSuccess }) => {
               placeholder="השם שלי הוא..."
               value={studentName}
               onChange={(e) => setStudentName(e.target.value)}
-              disabled={Boolean(authenticatedAdmin)}
             />
           </div>
         </div>
 
         <button type="submit" className="login-button">
-          {authenticatedAdmin ? 'כניסה לניהול' : 'התחל פעילות'}
+          התחל פעילות
         </button>
 
         <button
           type="button"
           className="show-result"
           onClick={() => handleLogin(null, 'results')}
-          disabled={Boolean(authenticatedAdmin)}
         >
           לצפייה בתוצאות
         </button>
