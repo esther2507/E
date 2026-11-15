@@ -3,6 +3,8 @@ const router = express.Router()
 const verifyJWT = require("../middleware/verifyJWT")
 const AiReportController = require("../controllers/AiReportController")
 
+router.post("/sessions/:sessionId/analyze", verifyJWT, AiReportController.analyzeSession)
+router.get("/sessions/:sessionId", verifyJWT, AiReportController.getSessionReport)
 router.post("/reports", verifyJWT, AiReportController.createAiReport)
 router.get("/reports", verifyJWT, AiReportController.getAiReports)
 router.get("/reports/:id", verifyJWT, AiReportController.getAiReportById)

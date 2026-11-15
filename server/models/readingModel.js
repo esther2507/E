@@ -224,6 +224,28 @@ const readingResponseSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    evaluation: {
+        type: String,
+        enum: ["accurate", "error"],
+        required: true
+    },
+    errorType: {
+        type: String,
+        enum: ["none", "vowel", "auditory", "visual", "omission", "addition", "substitution", "other"],
+        required: true,
+        default: "none"
+    },
+    errorDetails: {
+        type: String,
+        trim: true,
+        maxlength: 300,
+        default: ""
+    },
+    vowelErrorCount: {
+        type: Number,
+        min: 0,
+        default: 0
+    },
     createdAt: {
         type: Date,
         default: Date.now

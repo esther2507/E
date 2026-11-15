@@ -4,6 +4,24 @@ const bcrypt = require("bcrypt")
 const jwt = require('jsonwebtoken')
 const e = require("express")
 
+const getCanonicalReadingItem = async (part, boardName, itemIndex) => {
+    const readingData = await import("../../src/data/readingData.js");
+
+    if (part === "letters") {
+        const letters = boardName === "אותיות בסדר רגיל"
+            ? readingData.lettersOrdered
+            : boardName === "אותיות מעורבבות"
+                ? readingData.lettersRandom
+                : null;
+        return letters?.[itemIndex];
+    }
+
+    const boards = part === "combos"
+        ? readingData.combosBoards
+        : readingData.nonwordsBoards;
+    return boards.find((board) => board.name === boardName)?.items[itemIndex];
+};
+
 const answerKey = {
     "0:1": 3,
     "0:2": 1,
@@ -28,8 +46,18 @@ const createReadingResponse = async (req, res) => {
             boardName,
             itemIndex,
             itemText,
-            responseText
+            responseText,
+            evaluation,
+            errorType,
+            errorDetails,
+            vowelErrorCount
         } = req.body;
+
+        const vowelOccurrences = typeof itemText === "string"
+            ? (itemText.match(/[\u05B0-\u05BB]/g) || []).length
+            : 0;
+        const hasError = evaluation === "error";
+        const allowedErrorTypes = ["vowel", "auditory", "visual", "omission", "addition", "substitution", "other"];
 
         if (
             !mongoose.isValidObjectId(sessionId) ||
@@ -41,9 +69,32 @@ const createReadingResponse = async (req, res) => {
             typeof itemText !== "string" ||
             !itemText.trim() ||
             typeof responseText !== "string" ||
-            !responseText.trim()
+            !responseText.trim() ||
+            !["accurate", "error"].includes(evaluation) ||
+            (hasError && (
+                !allowedErrorTypes.includes(errorType) ||
+                typeof errorDetails !== "string" ||
+                !errorDetails.trim()
+            )) ||
+            (!hasError && (
+                errorType !== "none" ||
+                Number(vowelErrorCount || 0) !== 0 ||
+                (typeof errorDetails === "string" && errorDetails.trim())
+            )) ||
+            (hasError && errorType === "vowel" && (
+                !Number.isInteger(vowelErrorCount) ||
+                vowelErrorCount < 1 ||
+                vowelErrorCount > vowelOccurrences
+            )) ||
+            (hasError && errorType !== "vowel" && Number(vowelErrorCount || 0) !== 0) ||
+            (typeof errorDetails === "string" && errorDetails.length > 300)
         ) {
             return res.status(400).json({ message: "Invalid reading response data" });
+        }
+
+        const canonicalItem = await getCanonicalReadingItem(part, boardName.trim(), itemIndex);
+        if (canonicalItem !== itemText.trim()) {
+            return res.status(400).json({ message: "Reading item does not match the assessment content" });
         }
 
         const session = await Session.findOne({
@@ -55,14 +106,25 @@ const createReadingResponse = async (req, res) => {
             return res.status(404).json({ message: "Session not found for this teacher" });
         }
 
-        const savedResponse = await ReadingResponse.create({
-            sessionId,
-            part,
-            boardName: boardName.trim(),
-            itemIndex,
-            itemText: itemText.trim(),
-            responseText: responseText.trim()
-        });
+        const savedResponse = await ReadingResponse.findOneAndUpdate(
+            {
+                sessionId,
+                part,
+                boardName: boardName.trim(),
+                itemIndex
+            },
+            {
+                $set: {
+                    itemText: itemText.trim(),
+                    responseText: responseText.trim(),
+                    evaluation,
+                    errorType,
+                    errorDetails: typeof errorDetails === "string" ? errorDetails.trim() : "",
+                    vowelErrorCount: Number(vowelErrorCount || 0)
+                }
+            },
+            { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+        );
 
         return res.status(201).json(savedResponse);
     } catch (error) {

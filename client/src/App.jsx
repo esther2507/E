@@ -36,7 +36,28 @@ function App() {
         throw new Error(data.message || 'לא ניתן לסיים את המבחן');
       }
 
-      setUser({ ...user, view: 'results' });
+      let reportNotice = '';
+      try {
+        const reportResponse = await fetch(
+          `/api/AiReportRoutes/sessions/${user.sessionId}/analyze`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+            },
+          }
+        );
+        const reportData = await reportResponse.json();
+        if (!reportResponse.ok) {
+          throw new Error(reportData.message || 'לא ניתן להפיק דוח AI');
+        }
+      } catch (error) {
+        reportNotice = error instanceof Error
+          ? `המבחן נשמר, אך הדוח לא הופק: ${error.message}`
+          : 'המבחן נשמר, אך הדוח לא הופק.';
+      }
+
+      setUser({ ...user, view: 'results', reportNotice });
     } catch (error) {
       setCompletionError(
         error instanceof Error ? error.message : 'לא ניתן לסיים את המבחן'

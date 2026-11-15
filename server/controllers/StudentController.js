@@ -1,6 +1,6 @@
 //const bcrypt = require("bcrypt")
 //const jwt= require('jsonwebtoken')
-const { Student, Session, ItemResult } = require("../models/readingModel");
+const { Student, Session, ItemResult, AiReport } = require("../models/readingModel");
 
 const createStudent = async (req, res) => {
     try {
@@ -120,7 +120,9 @@ const getStudentSummary = async (req, res) => {
                         studentName: student.Studentname,
                         age: student.age ?? null,
                         score: null,
-                        lastExamDate: null
+                        lastExamDate: null,
+                        lastCompletedSessionId: null,
+                        readingReport: null
                     };
                 }
 
@@ -137,13 +139,21 @@ const getStudentSummary = async (req, res) => {
                         100
                     )
                     : 0;
+                const readingReport = await AiReport.findOne({
+                    sessionId: lastSession._id,
+                    part: "reading_assessment"
+                })
+                    .select("metricsJson aiOutputJson createdAt")
+                    .lean();
 
                 return {
                     studentId: student._id,
                     studentName: student.Studentname,
                     age: student.age ?? null,
                     score,
-                    lastExamDate: lastSession.completedAt ?? lastSession.startedAt
+                    lastExamDate: lastSession.completedAt ?? lastSession.startedAt,
+                    lastCompletedSessionId: lastSession._id,
+                    readingReport
                 };
             })
         );

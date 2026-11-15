@@ -31,6 +31,10 @@ const ReadingResponsePanel = ({
   itemText,
 }) => {
   const [responseText, setResponseText] = useState('');
+  const [evaluation, setEvaluation] = useState('');
+  const [errorType, setErrorType] = useState('');
+  const [errorDetails, setErrorDetails] = useState('');
+  const [vowelErrorCount, setVowelErrorCount] = useState('1');
   const [message, setMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const responseInputRef = useRef(null);
@@ -70,6 +74,27 @@ const ReadingResponsePanel = ({
       return;
     }
 
+    if (!evaluation) {
+      setMessage('יש לסמן אם התשובה מדויקת או שגויה.');
+      return;
+    }
+
+    if (evaluation === 'error' && (!errorType || !errorDetails.trim())) {
+      setMessage('בתשובה שגויה יש לבחור סוג טעות ולפרט אותה.');
+      return;
+    }
+
+    const expectedVowels = (itemText.match(/[\u05B0-\u05BB]/g) || []).length;
+    const vowelErrors = Number(vowelErrorCount);
+    if (
+      evaluation === 'error' &&
+      errorType === 'vowel' &&
+      (!Number.isInteger(vowelErrors) || vowelErrors < 1 || vowelErrors > expectedVowels)
+    ) {
+      setMessage('מספר טעויות התנועה חייב להיות בין 1 למספר התנועות בפריט.');
+      return;
+    }
+
     if (!sessionId) {
       setMessage('לא נמצא מפגש פעיל לשמירת התשובה.');
       return;
@@ -90,6 +115,10 @@ const ReadingResponsePanel = ({
           itemIndex,
           itemText,
           responseText: answer,
+          evaluation,
+          errorType: evaluation === 'error' ? errorType : 'none',
+          errorDetails: evaluation === 'error' ? errorDetails.trim() : '',
+          vowelErrorCount: evaluation === 'error' && errorType === 'vowel' ? vowelErrors : 0,
         }),
       });
       const data = await response.json();
@@ -98,7 +127,7 @@ const ReadingResponsePanel = ({
         throw new Error(data.message || 'לא ניתן לשמור את התשובה.');
       }
 
-      setMessage('התשובה נשמרה.');
+      setMessage('התשובה וההערכה נשמרו.');
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : 'אירעה שגיאה בשמירת התשובה.'
@@ -127,6 +156,65 @@ const ReadingResponsePanel = ({
               rows={3}
               required
             />
+            <label htmlFor="response-evaluation">הערכת הקריאה:</label>
+            <select
+              id="response-evaluation"
+              value={evaluation}
+              onChange={(event) => {
+                setEvaluation(event.target.value);
+                setErrorType('');
+                setErrorDetails('');
+                setVowelErrorCount('1');
+              }}
+              required
+            >
+              <option value="">יש לבחור</option>
+              <option value="accurate">מדויקת</option>
+              <option value="error">שגויה</option>
+            </select>
+            {evaluation === 'error' && (
+              <>
+                <label htmlFor="response-error-type">סוג הטעות:</label>
+                <select
+                  id="response-error-type"
+                  value={errorType}
+                  onChange={(event) => setErrorType(event.target.value)}
+                  required
+                >
+                  <option value="">יש לבחור</option>
+                  <option value="vowel">בלבול תנועות</option>
+                  <option value="auditory">בלבול שמיעתי</option>
+                  <option value="visual">בלבול חזותי</option>
+                  <option value="omission">השמטה</option>
+                  <option value="addition">הוספה</option>
+                  <option value="substitution">החלפה</option>
+                  <option value="other">אחר</option>
+                </select>
+                {errorType === 'vowel' && (
+                  <>
+                    <label htmlFor="vowel-error-count">מספר טעויות התנועה בפריט:</label>
+                    <input
+                      id="vowel-error-count"
+                      type="number"
+                      min="1"
+                      max={(itemText.match(/[\u05B0-\u05BB]/g) || []).length}
+                      value={vowelErrorCount}
+                      onChange={(event) => setVowelErrorCount(event.target.value)}
+                      required
+                    />
+                  </>
+                )}
+                <label htmlFor="response-error-details">פירוט הטעות:</label>
+                <textarea
+                  id="response-error-details"
+                  value={errorDetails}
+                  onChange={(event) => setErrorDetails(event.target.value)}
+                  maxLength={300}
+                  rows={2}
+                  required
+                />
+              </>
+            )}
             {showNikudButtons && (
               <>
                 <span className="reading-response-mark-label">הוספת ניקוד:</span>
@@ -152,7 +240,7 @@ const ReadingResponsePanel = ({
             </button>
           </form>
           <p className="reading-response-note">
-            התשובה נשמרת לתיעוד בלבד; לא נקבעת נכונות בשלב זה.
+            ההערכה משמשת לחישוב המדדים. שטף לא מחושב עד שיוגדרו ספי דירוג מלאים.
           </p>
         </>
       ) : (

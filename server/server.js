@@ -8,7 +8,6 @@ const corsOptions = require("./config/corsOptions")
 const app = express()
 const PORT = process.env.PORT || 7000
 
-connectDB()
 app.use(cors(corsOptions))
 app.use(express.static("public"))
 app.use(express.json())
@@ -21,6 +20,23 @@ const TeacherRoutes = require("./routes/TeacherRoutes")
 const ItemResultRoutes = require("./routes/ItemResultRoutes")
 const SessionRoutes = require("./routes/SessionRoutes")
 const AdminReportRoutes = require("./routes/AdminReportRoutes")
+
+app.get("/api/health", (req, res) => {
+    const databaseConnected = mongoose.connection.readyState === 1
+    return res.status(databaseConnected ? 200 : 503).json({
+        server: "running",
+        database: databaseConnected ? "connected" : "disconnected"
+    })
+})
+
+app.use("/api", (req, res, next) => {
+    if (mongoose.connection.readyState !== 1) {
+        return res.status(503).json({
+            message: "Database unavailable. Check the MongoDB Atlas connection settings."
+        })
+    }
+    return next()
+})
 
 app.use("/api/auth", authRoutes)
 app.use("/api/AiReportRoutes", AiReportRoutes)
@@ -36,14 +52,15 @@ app.get("/", (req, res) => {
    res.send("This is home page")
 })
 
+mongoose.connection.on("connected", () => console.log("Connected to MongoDB"))
+mongoose.connection.on("error", (error) => console.error("MongoDB connection error:", error.message))
+mongoose.connection.on("disconnected", () => console.warn("MongoDB is disconnected"))
 
-mongoose.connection.once('open', () => {
-    console.log('Connected to MongoDB')
-    app.listen(PORT, () => console.log(`Server running on port${PORT}`))
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`)
 })
-mongoose.connection.on('error', err => {
-    console.log(err)
-})
+
+connectDB()
 
 
 // DATABASE_URI=mongodb://localhost:27017/329693279_2026

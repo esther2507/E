@@ -10,6 +10,45 @@ const SessionHistory = ({ user, onBack }) => {
   const [teacherUsername, setTeacherUsername] = useState('');
   const [teacherPassword, setTeacherPassword] = useState('');
   const [formMessage, setFormMessage] = useState('');
+  const [analyzingStudentId, setAnalyzingStudentId] = useState('');
+  const [reportMessages, setReportMessages] = useState({});
+  const [reportNotice, setReportNotice] = useState(user?.reportNotice || '');
+
+  async function handleAnalyzeSession(student) {
+    setAnalyzingStudentId(String(student.studentId));
+    setReportMessages((current) => ({ ...current, [student.studentId]: '' }));
+
+    try {
+      const response = await fetch(
+        `/api/AiReportRoutes/sessions/${student.lastCompletedSessionId}/analyze`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'לא ניתן להפיק דוח AI');
+      }
+
+      setStudents((current) => current.map((item) =>
+        item.studentId === student.studentId
+          ? { ...item, readingReport: data.report }
+          : item
+      ));
+      setReportNotice('');
+      setReportMessages((current) => ({ ...current, [student.studentId]: 'הדוח נשמר.' }));
+    } catch (error) {
+      setReportMessages((current) => ({
+        ...current,
+        [student.studentId]: error instanceof Error ? error.message : 'לא ניתן להפיק דוח AI',
+      }));
+    } finally {
+      setAnalyzingStudentId('');
+    }
+  }
 
   useEffect(() => {
     async function loadResults() {
@@ -115,6 +154,7 @@ const SessionHistory = ({ user, onBack }) => {
 
       {loading && <p>{user?.role === 'admin' ? 'טוען מורות ותלמידים...' : 'טוען תלמידים...'}</p>}
       {errorMessage && <p role="alert">{errorMessage}</p>}
+      {reportNotice && <p role="alert">{reportNotice}</p>}
 
       {!loading && !errorMessage && user?.role === 'admin' && teachers.length === 0 && (
         <p className="session-history-empty">אין עדיין מורות.</p>
@@ -160,8 +200,9 @@ const SessionHistory = ({ user, onBack }) => {
               <tr>
                 <th>שם התלמיד/ה</th>
                 {/* <th>גיל</th> */}
-                <th>ציון</th>
+                <th>ציון הבנת משפטים</th>
                 <th>תאריך בחינה אחרון</th>
+                <th>דוח והמלצות למורה</th>
               </tr>
             </thead>
             <tbody>
@@ -173,6 +214,74 @@ const SessionHistory = ({ user, onBack }) => {
                     {student.lastExamDate
                       ? new Date(student.lastExamDate).toLocaleDateString('he-IL')
                       : 'אין בחינה'}
+                  </td>
+                  <td>
+                    {student.readingReport ? (
+                      <details>
+                        <summary>
+                          ציון דיוק: {student.readingReport.aiOutputJson?.overallScore ?? '—'}%
+                        </summary>
+                        <p>{student.readingReport.aiOutputJson?.summary}</p>
+                        <p>
+                          ציון דיוק בקריאה: {student.readingReport.aiOutputJson?.overallScore ?? '—'}%
+                          {' · '}פריטים שנבדקו: {student.readingReport.metricsJson?.totalAssessed ?? 0}
+                        </p>
+                        <p>
+                          דיוק בתנועות: {student.readingReport.metricsJson?.vowelErrorPercent === null
+                            ? 'לא ניתן להעריך'
+                            : `${student.readingReport.metricsJson?.vowelErrorPercent}% (${student.readingReport.metricsJson?.vowelStatus})`}
+                        </p>
+                        <p>{student.readingReport.metricsJson?.coverageNote}</p>
+                        <strong>דיוק לפי שלב</strong>
+                        <ul>
+                          {Object.values(student.readingReport.metricsJson?.parts || {}).map((part) => (
+                            <li key={part.label}>
+                              {part.label}: {part.accuracyPercent === null
+                                ? 'לא נבדק'
+                                : `${part.accuracyPercent}% (${part.correct}/${part.assessed})`}
+                            </li>
+                          ))}
+                        </ul>
+                        {!!student.readingReport.aiOutputJson?.strengths?.length && (
+                          <>
+                            <strong>נקודות חוזק</strong>
+                            <ul>{student.readingReport.aiOutputJson.strengths.map((item, index) => <li key={index}>{item}</li>)}</ul>
+                          </>
+                        )}
+                        {!!student.readingReport.aiOutputJson?.recommendations?.length && (
+                          <>
+                            <strong>מומלץ לקדם</strong>
+                            <ul>{student.readingReport.aiOutputJson.recommendations.map((item, index) => <li key={index}>{item}</li>)}</ul>
+                          </>
+                        )}
+                        {!!student.readingReport.aiOutputJson?.nextSteps?.length && (
+                          <>
+                            <strong>צעדים להמשך</strong>
+                            <ul>{student.readingReport.aiOutputJson.nextSteps.map((item, index) => <li key={index}>{item}</li>)}</ul>
+                          </>
+                        )}
+                        <p>שטף: לא נמדד.</p>
+                      </details>
+                    ) : (
+                      <span>אין עדיין דוח AI.</span>
+                    )}
+                    {student.lastCompletedSessionId && (
+                      <button
+                        type="button"
+                        className="button-end"
+                        disabled={analyzingStudentId === String(student.studentId)}
+                        onClick={() => handleAnalyzeSession(student)}
+                      >
+                        {analyzingStudentId === String(student.studentId)
+                          ? 'מפיק דוח...'
+                          : student.readingReport ? 'עדכון דוח AI' : 'הפקת דוח AI'}
+                      </button>
+                    )}
+                    {reportMessages[student.studentId] && (
+                      <p role={reportMessages[student.studentId] === 'הדוח נשמר.' ? 'status' : 'alert'}>
+                        {reportMessages[student.studentId]}
+                      </p>
+                    )}
                   </td>
                 </tr>
               ))}
