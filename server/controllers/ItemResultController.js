@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { ItemResult, Session, ReadingResponse } = require("../models/readingModel");
+const { wordToImageAnswerKey } = require("../services/readingAssessment");
 const bcrypt = require("bcrypt")
 const jwt = require('jsonwebtoken')
 const e = require("express")
@@ -22,18 +23,6 @@ const getCanonicalReadingItem = async (part, boardName, itemIndex) => {
     return boards.find((board) => board.name === boardName)?.items[itemIndex];
 };
 
-const answerKey = {
-    "0:1": 3,
-    "0:2": 1,
-    "0:3": 1,
-    "1:4": 2,
-    "1:5": 2,
-    "1:6": 3,
-    "1:7": 3,
-    "2:8": 3,
-    "2:9": 2,
-    "2:10": 2
-};
 const createReadingResponse = async (req, res) => {
     try {
         if (req.user?.role !== "teacher") {
@@ -143,20 +132,31 @@ const createItemResult = async (req, res) => {
             sessionId,
             questionGroup,
             questionId,
+            questionText,
             selectedOptionId,
-            selectedValue,
-            result
+            selectedValue
         } = req.body;
 
+        const expectedOptionId = wordToImageAnswerKey[`${questionGroup}:${questionId}`];
         if (!mongoose.isValidObjectId(sessionId)) {
             return res.status(400).json({ message: "Valid sessionId is required" });
         }
 
         if (
-            !questionGroup ||
+            !["0", "1", "2"].includes(questionGroup) ||
             !Number.isInteger(questionId) ||
+            !Number.isInteger(expectedOptionId) ||
             !Number.isInteger(selectedOptionId) ||
-            !["correct", "incorrect", "self_corrected"].includes(result)
+            selectedOptionId < 1 ||
+            selectedOptionId > 3 ||
+            (questionText !== undefined && (
+                typeof questionText !== "string" ||
+                questionText.length > 500
+            )) ||
+            (selectedValue !== undefined && (
+                typeof selectedValue !== "string" ||
+                selectedValue.length > 500
+            ))
         ) {
             return res.status(400).json({ message: "Invalid answer data" });
         }
@@ -174,9 +174,11 @@ const createItemResult = async (req, res) => {
             sessionId,
             questionGroup,
             questionId,
+            questionText: questionText || "",
             selectedOptionId,
+            expectedOptionId,
             selectedValue: selectedValue || "",
-            result
+            result: selectedOptionId === expectedOptionId ? "correct" : "incorrect"
         });
 
         return res.status(201).json(savedResult);

@@ -141,6 +141,7 @@ const WordToImage = ({ onComplate, sessionId }) => {
 
     const [selectedOptionId, setSelectedOptionId] = useState(null);
     const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false);
+    const [saveError, setSaveError] = useState('');
 
     const activeGroup = groups[currentGroupIndex] || groups[0];
     const currentQuestion = activeGroup.questions[currentQuestionIndex] || activeGroup.questions[0];
@@ -153,6 +154,7 @@ const WordToImage = ({ onComplate, sessionId }) => {
     const handleSelect = async (option) => {
         if (isAnswerSubmitted) return;
 
+        setSaveError('');
         setSelectedOptionId(option.id);
         setIsAnswerSubmitted(true);
 
@@ -167,17 +169,21 @@ const WordToImage = ({ onComplate, sessionId }) => {
                     sessionId,
                     questionGroup: String(currentGroupIndex),
                     questionId: currentQuestion.id,
+                    questionText: currentQuestion.sentence || activeGroup.groupName,
                     selectedOptionId: option.id,
-                    selectedValue: option.sentence || '',
-                    result: option.isCorrect ? 'correct' : 'incorrect'
+                    selectedValue: option.sentence || `אפשרות תמונה ${option.id}`
                 })
             });
 
             if (!response.ok) {
-                throw new Error('שמירת התשובה נכשלה');
+                const data = await response.json();
+                throw new Error(data.message || 'שמירת התשובה נכשלה');
             }
         } catch (error) {
-            console.error('Could not save answer:', error);
+            setSaveError(error instanceof Error ? error.message : 'שמירת התשובה נכשלה');
+            setSelectedOptionId(null);
+            setIsAnswerSubmitted(false);
+            return;
         }
 
         setTimeout(() => {
@@ -202,6 +208,7 @@ return (
     <div className="test-page-container">
         <div className="test-main-card">
             <h2 className="main-title">מבדק קריאה אישי</h2>
+            {saveError && <p role="alert">{saveError}</p>}
 
             <div className="sentence-box">
                 <span className="state-badge">

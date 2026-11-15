@@ -146,7 +146,16 @@ const itemResultSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    questionText: {
+        type: String,
+        default: "",
+        trim: true
+    },
     selectedOptionId: {
+        type: Number,
+        required: true
+    },
+    expectedOptionId: {
         type: Number,
         required: true
     },

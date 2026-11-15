@@ -1,4 +1,5 @@
 const partLabels = {
+    wordToImage: "משפטים ותמונות",
     letters: "אותיות",
     combos: "צירופים",
     nonwords: "מילות תפל"
@@ -14,12 +15,36 @@ const errorLabels = {
     other: "אחר"
 };
 
+const wordToImageAnswerKey = {
+    "0:1": 3,
+    "0:2": 1,
+    "0:3": 1,
+    "1:4": 2,
+    "1:5": 2,
+    "1:6": 3,
+    "1:7": 3,
+    "2:8": 1,
+    "2:9": 2,
+    "2:10": 2
+};
+
 const countVowels = (text) => (text.match(/[\u05B0-\u05BB]/g) || []).length;
 
-const calculateReadingMetrics = (responses) => {
+const calculateReadingMetrics = (responses, itemResults = []) => {
     const parts = {};
 
+    const imageCorrect = itemResults.filter((result) => result.result === "correct").length;
+    parts.wordToImage = {
+        label: partLabels.wordToImage,
+        assessed: itemResults.length,
+        correct: imageCorrect,
+        accuracyPercent: itemResults.length
+            ? Math.round((imageCorrect / itemResults.length) * 100)
+            : null
+    };
+
     for (const [part, label] of Object.entries(partLabels)) {
+        if (part === "wordToImage") continue;
         const partResponses = responses.filter((response) => response.part === part);
         const correct = partResponses.filter((response) => response.evaluation === "accurate").length;
         parts[part] = {
@@ -32,7 +57,9 @@ const calculateReadingMetrics = (responses) => {
         };
     }
 
-    const correct = responses.filter((response) => response.evaluation === "accurate").length;
+    const readingCorrect = responses.filter((response) => response.evaluation === "accurate").length;
+    const correct = readingCorrect + imageCorrect;
+    const totalAssessed = responses.length + itemResults.length;
     const vowelOccurrences = responses.reduce(
         (total, response) => total + countVowels(response.itemText),
         0
@@ -54,14 +81,14 @@ const calculateReadingMetrics = (responses) => {
     }
 
     return {
-        overallScore: responses.length
-            ? Math.round((correct / responses.length) * 100)
+        overallScore: totalAssessed
+            ? Math.round((correct / totalAssessed) * 100)
             : null,
-        totalAssessed: responses.length,
-        coverageNote: "הציון מחושב רק מתוך הפריטים שנשמרו להם תשובת תלמיד/ה והערכת מורה.",
+        totalAssessed,
+        coverageNote: "הציון כולל את שאלות המשפטים והתמונות ואת פריטי הקריאה שנשמרו להם תשובה והערכת מורה.",
         correct,
-        accuracyPercent: responses.length
-            ? Math.round((correct / responses.length) * 100)
+        accuracyPercent: totalAssessed
+            ? Math.round((correct / totalAssessed) * 100)
             : null,
         parts,
         vowelOccurrences,
@@ -80,4 +107,4 @@ const calculateReadingMetrics = (responses) => {
     };
 };
 
-module.exports = { calculateReadingMetrics };
+module.exports = { calculateReadingMetrics, wordToImageAnswerKey };

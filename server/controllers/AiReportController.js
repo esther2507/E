@@ -1,4 +1,4 @@
-const { AiReport, Session, ReadingResponse, Student, Teacher } = require("../models/readingModel")
+const { AiReport, Session, ReadingResponse, ItemResult, Student, Teacher } = require("../models/readingModel")
 const mongoose = require("mongoose")
 const { calculateReadingMetrics } = require("../services/readingAssessment")
 
@@ -40,19 +40,24 @@ const analyzeSession = async (req, res) => {
             return res.status(503).json({ message: "AI is not configured. Add OPENAI_API_KEY to the server environment." })
         }
 
-        const responses = await ReadingResponse.find({ sessionId: session._id })
-            .sort({ part: 1, createdAt: 1 })
-            .lean()
+        const [responses, itemResults] = await Promise.all([
+            ReadingResponse.find({ sessionId: session._id })
+                .sort({ part: 1, createdAt: 1 })
+                .lean(),
+            ItemResult.find({ sessionId: session._id })
+                .sort({ createdAt: 1 })
+                .lean()
+        ])
 
-        if (!responses.length) {
-            return res.status(400).json({ message: "No reading answers were saved for this session" })
+        if (!responses.length && !itemResults.length) {
+            return res.status(400).json({ message: "No answers were saved for this session" })
         }
 
         if (responses.some((response) => !response.evaluation)) {
             return res.status(409).json({ message: "Some answers are missing teacher evaluations. Save their evaluations before generating the report." })
         }
 
-        const metrics = calculateReadingMetrics(responses)
+        const metrics = calculateReadingMetrics(responses, itemResults)
         const [student, teacher] = await Promise.all([
             Student.findById(session.studentId).select("Studentname organization").lean(),
             Teacher.findById(session.examinerId).select("Teachername username").lean()
@@ -72,6 +77,16 @@ const analyzeSession = async (req, res) => {
             errorDetails: redactPersonalInfo(response.errorDetails || "", privateTerms),
             vowelErrorCount: response.vowelErrorCount
         }))
+        const anonymizedItemResults = itemResults.map((result) => ({
+            part: "משפטים ותמונות",
+            questionGroup: result.questionGroup,
+            questionId: result.questionId,
+            question: redactPersonalInfo(result.questionText || "", privateTerms),
+            expectedOptionId: result.expectedOptionId,
+            selectedOptionId: result.selectedOptionId,
+            selectedAnswer: redactPersonalInfo(result.selectedValue || "", privateTerms),
+            evaluation: result.result
+        }))
         const openAiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -84,13 +99,14 @@ const analyzeSession = async (req, res) => {
                 messages: [
                     {
                         role: "system",
-                        content: "את/ה מסייע/ת למורה לנתח תוצאות של מבדק קריאה בעברית. כל המספרים חושבו מראש ואין לשנות אותם או להמציא נתונים. הציון מבוסס רק על הפריטים שנשמרו, לכן אל תציג/י אותו כאילו כל המבדק הושלם. החזר/י JSON בלבד עם המפתחות summary (מחרוזת), strengths (מערך מחרוזות), recommendations (מערך מחרוזות), nextSteps (מערך מחרוזות). כתוב/י בעברית, בניסוח תמציתי ומעשי למורה. התייחס/י רק לנתונים שסופקו, אל תאבחן/י לקות ואל תכלול/י פרטים מזהים."
+                        content: "את/ה מסייע/ת למורה לנתח תוצאות של מבדק קריאה בעברית, כולל שאלות הבנת משפטים עם תמונות ושלבי קריאה. שאלות תמונה מתוארות לפי מספר אפשרות בלבד; אין לנחש את תוכן התמונה. כל המספרים חושבו מראש ואין לשנות אותם או להמציא נתונים. הציון מבוסס רק על הפריטים שנשמרו, לכן אל תציג/י אותו כאילו כל המבדק הושלם. החזר/י JSON בלבד עם המפתחות summary (מחרוזת), strengths (מערך מחרוזות), recommendations (מערך מחרוזות), nextSteps (מערך מחרוזות). כתוב/י בעברית, בניסוח תמציתי ומעשי למורה. התייחס/י רק לנתונים שסופקו, אל תאבחן/י לקות ואל תכלול/י פרטים מזהים."
                     },
                     {
                         role: "user",
                         content: JSON.stringify({
                             metrics,
-                            responses: anonymizedResponses
+                            responses: anonymizedResponses,
+                            sentenceAndImageResponses: anonymizedItemResults
                         })
                     }
                 ]

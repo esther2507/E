@@ -35,7 +35,11 @@ const SessionHistory = ({ user, onBack }) => {
 
       setStudents((current) => current.map((item) =>
         item.studentId === student.studentId
-          ? { ...item, readingReport: data.report }
+          ? {
+            ...item,
+            score: data.report.metricsJson?.overallScore ?? item.score,
+            readingReport: data.report
+          }
           : item
       ));
       setReportNotice('');
@@ -200,38 +204,30 @@ const SessionHistory = ({ user, onBack }) => {
               <tr>
                 <th>שם התלמיד/ה</th>
                 {/* <th>גיל</th> */}
-                <th>ציון הבנת משפטים</th>
+                <th>ציון</th>
                 <th>תאריך בחינה אחרון</th>
-                <th>דוח והמלצות למורה</th>
               </tr>
             </thead>
             <tbody>
               {students.map((student) => (
                 <tr key={student.studentId}>
                   <td>{student.studentName}</td>
-                  <td>{student.score ?? 'אין ציון'}</td>
                   <td>
-                    {student.lastExamDate
-                      ? new Date(student.lastExamDate).toLocaleDateString('he-IL')
-                      : 'אין בחינה'}
-                  </td>
-                  <td>
-                    {student.readingReport ? (
+                    {student.score === null || student.score === undefined
+                      ? 'אין ציון'
+                      : `${student.score}%`}
+                    {student.readingReport && (
                       <details>
-                        <summary>
-                          ציון דיוק: {student.readingReport.aiOutputJson?.overallScore ?? '—'}%
-                        </summary>
+                        <summary>המלצות למורה</summary>
                         <p>{student.readingReport.aiOutputJson?.summary}</p>
                         <p>
-                          ציון דיוק בקריאה: {student.readingReport.aiOutputJson?.overallScore ?? '—'}%
-                          {' · '}פריטים שנבדקו: {student.readingReport.metricsJson?.totalAssessed ?? 0}
+                          פריטים שנבדקו: {student.readingReport.metricsJson?.totalAssessed ?? 0}
                         </p>
                         <p>
                           דיוק בתנועות: {student.readingReport.metricsJson?.vowelErrorPercent === null
                             ? 'לא ניתן להעריך'
                             : `${student.readingReport.metricsJson?.vowelErrorPercent}% (${student.readingReport.metricsJson?.vowelStatus})`}
                         </p>
-                        <p>{student.readingReport.metricsJson?.coverageNote}</p>
                         <strong>דיוק לפי שלב</strong>
                         <ul>
                           {Object.values(student.readingReport.metricsJson?.parts || {}).map((part) => (
@@ -262,8 +258,6 @@ const SessionHistory = ({ user, onBack }) => {
                         )}
                         <p>שטף: לא נמדד.</p>
                       </details>
-                    ) : (
-                      <span>אין עדיין דוח AI.</span>
                     )}
                     {student.lastCompletedSessionId && (
                       <button
@@ -282,6 +276,11 @@ const SessionHistory = ({ user, onBack }) => {
                         {reportMessages[student.studentId]}
                       </p>
                     )}
+                  </td>
+                  <td>
+                    {student.lastExamDate
+                      ? new Date(student.lastExamDate).toLocaleDateString('he-IL')
+                      : 'אין בחינה'}
                   </td>
                 </tr>
               ))}

@@ -1,6 +1,7 @@
 //const bcrypt = require("bcrypt")
 //const jwt= require('jsonwebtoken')
-const { Student, Session, ItemResult, AiReport } = require("../models/readingModel");
+const { Student, Session, ItemResult, ReadingResponse, AiReport } = require("../models/readingModel");
+const { calculateReadingMetrics } = require("../services/readingAssessment");
 
 const createStudent = async (req, res) => {
     try {
@@ -126,19 +127,15 @@ const getStudentSummary = async (req, res) => {
                     };
                 }
 
-                const answers = await ItemResult.find({
-                    sessionId: lastSession._id
-                })
-                    .select("result")
-                    .lean();
-
-                const score = answers.length
-                    ? Math.round(
-                        (answers.filter((answer) => answer.result === "correct").length /
-                            answers.length) *
-                        100
-                    )
-                    : 0;
+                const [answers, readingResponses] = await Promise.all([
+                    ItemResult.find({ sessionId: lastSession._id })
+                        .select("result")
+                        .lean(),
+                    ReadingResponse.find({ sessionId: lastSession._id })
+                        .select("itemText evaluation errorType vowelErrorCount part")
+                        .lean()
+                ]);
+                const score = calculateReadingMetrics(readingResponses, answers).overallScore;
                 const readingReport = await AiReport.findOne({
                     sessionId: lastSession._id,
                     part: "reading_assessment"

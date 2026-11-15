@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { calculateReadingMetrics } = require("./readingAssessment");
+const { calculateReadingMetrics, wordToImageAnswerKey } = require("./readingAssessment");
 
 test("calculates overall and per-part accuracy from assessed responses", () => {
     const metrics = calculateReadingMetrics([
@@ -14,7 +14,42 @@ test("calculates overall and per-part accuracy from assessed responses", () => {
     assert.equal(metrics.parts.letters.accuracyPercent, 100);
     assert.equal(metrics.parts.combos.accuracyPercent, 0);
     assert.equal(metrics.parts.nonwords.accuracyPercent, 100);
-    assert.equal(metrics.coverageNote, "הציון מחושב רק מתוך הפריטים שנשמרו להם תשובת תלמיד/ה והערכת מורה.");
+    assert.equal(metrics.coverageNote, "הציון כולל את שאלות המשפטים והתמונות ואת פריטי הקריאה שנשמרו להם תשובה והערכת מורה.");
+});
+
+test("includes sentence and image questions in the overall score", () => {
+    const metrics = calculateReadingMetrics(
+        [
+            { part: "letters", itemText: "ב", evaluation: "accurate", errorType: "none", vowelErrorCount: 0 },
+            { part: "combos", itemText: "דָ", evaluation: "error", errorType: "vowel", vowelErrorCount: 1 }
+        ],
+        [
+            { result: "correct" },
+            { result: "incorrect" },
+            { result: "correct" }
+        ]
+    );
+
+    assert.equal(metrics.parts.wordToImage.assessed, 3);
+    assert.equal(metrics.parts.wordToImage.correct, 2);
+    assert.equal(metrics.parts.wordToImage.accuracyPercent, 67);
+    assert.equal(metrics.totalAssessed, 5);
+    assert.equal(metrics.overallScore, 60);
+});
+
+test("uses the correct answer key for the initial image questions", () => {
+    assert.deepEqual(wordToImageAnswerKey, {
+        "0:1": 3,
+        "0:2": 1,
+        "0:3": 1,
+        "1:4": 2,
+        "1:5": 2,
+        "1:6": 3,
+        "1:7": 3,
+        "2:8": 1,
+        "2:9": 2,
+        "2:10": 2
+    });
 });
 
 test("flags vowel error rates at or above ten percent", () => {

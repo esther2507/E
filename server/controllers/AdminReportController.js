@@ -2,8 +2,10 @@ const {
     Teacher,
     Student,
     Session,
-    ItemResult
+    ItemResult,
+    ReadingResponse
 } = require("../models/readingModel");
+const { calculateReadingMetrics } = require("../services/readingAssessment");
 
 const getReport = async (req, res) => {
     try {
@@ -16,9 +18,11 @@ const getReport = async (req, res) => {
         const students = await Student.find({ teacherId: { $in: teacherIds } }).lean();
         const sessions = await Session.find({ examinerId: { $in: teacherIds } }).lean();
         const completedSessions = sessions.filter((session) => session.status === "completed");
-        const results = await ItemResult.find({
-            sessionId: { $in: completedSessions.map((session) => session._id) }
-        }).lean();
+        const completedSessionIds = completedSessions.map((session) => session._id);
+        const [results, readingResponses] = await Promise.all([
+            ItemResult.find({ sessionId: { $in: completedSessionIds } }).lean(),
+            ReadingResponse.find({ sessionId: { $in: completedSessionIds } }).lean()
+        ]);
 
         const resultsBySession = new Map();
         for (const result of results) {
@@ -26,6 +30,14 @@ const getReport = async (req, res) => {
             const existing = resultsBySession.get(sessionKey) || [];
             existing.push(result);
             resultsBySession.set(sessionKey, existing);
+        }
+
+        const readingBySession = new Map();
+        for (const response of readingResponses) {
+            const sessionKey = response.sessionId.toString();
+            const existing = readingBySession.get(sessionKey) || [];
+            existing.push(response);
+            readingBySession.set(sessionKey, existing);
         }
 
         const sessionsByStudent = new Map();
@@ -50,15 +62,11 @@ const getReport = async (req, res) => {
                     new Date(second.completedAt || second.startedAt) -
                     new Date(first.completedAt || first.startedAt)
                 )[0];
-            const answerCount = lastCompletedSession?.results.length ?? 0;
             const score = lastCompletedSession
-                ? answerCount
-                    ? Math.round(
-                        (lastCompletedSession.results.filter((answer) => answer.result === "correct").length /
-                            answerCount) *
-                        100
-                    )
-                    : 0
+                ? calculateReadingMetrics(
+                    readingBySession.get(lastCompletedSession._id.toString()) || [],
+                    lastCompletedSession.results
+                ).overallScore
                 : null;
 
             existing.push({
