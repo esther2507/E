@@ -22,15 +22,16 @@ const boardWeights = {
 };
 
 function calculateWeightedScore(items) {
+    if (!Array.isArray(items) || items.length === 0) return 0;
     const weightedPoints = items.reduce((total, item) => {
         const weight = boardWeights[item.boardName] || boardWeights[item.part] || 1;
-        return total + item.accuracy * weight;
+        return total + (item.accuracy || 0) * weight;
     }, 0);
     const totalWeight = items.reduce((total, item) => {
         return total + (boardWeights[item.boardName] || boardWeights[item.part] || 1);
     }, 0);
 
-    return totalWeight ? Math.round(weightedPoints / totalWeight) : null;
+    return totalWeight ? Math.round(weightedPoints / totalWeight) : 0;
 }
 
 async function getAiReadingFeedback(responses, imageItems) {
@@ -156,10 +157,10 @@ async function gradeSession(sessionId, examinerId) {
     const score = calculateWeightedScore(items);
     
     const report = {
-        score,
-        explanation: readingResponses.length
-            ? readingFeedback.explanation
-            : "הציון מבוסס על תשובות התלמיד/ה בתרגילי התמונות.",
+        score: score ?? 0,
+        explanation: readingResponses.length || imageAnswers.length
+            ? (readingResponses.length ? readingFeedback.explanation : "הציון מבוסס על תשובות התלמיד/ה בתרגילי התמונות.")
+            : "המבחן הסתיים בהצלחה. (לא נמצאו תשובות מפורטות בסשן זה).",
         improvements: [...new Set([
             ...imageItems.flatMap((item) => item.improvements),
             ...readingFeedback.improvements,
@@ -167,9 +168,7 @@ async function gradeSession(sessionId, examinerId) {
         ])],
         encouragement: readingResponses.length
             ? readingFeedback.encouragement
-            : imageItems.some((item) => item.accuracy < 100)
-                ? "כל ניסיון מלמד אותנו משהו. נתרגל ונצליח יותר בפעם הבאה!"
-                : "כל הכבוד על ההצלחה במבדק! המשך/י כך!",
+            : "כל הכבוד על השלמת המבחן!",
         items,
         aiGenerated: readingFeedback.aiGenerated,
         generatedAt: new Date()
@@ -177,7 +176,7 @@ async function gradeSession(sessionId, examinerId) {
 
     await Session.findByIdAndUpdate(sessionId, {
         report: report,
-        score: score,
+        score: score ?? 0,
         status: "completed"
     });
 
