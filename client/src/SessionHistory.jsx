@@ -19,6 +19,7 @@ const SessionHistory = ({ user, onBack }) => {
 
   useEffect(() => {
     async function generateStudentReport(student) {
+      if (!student?.lastSessionId) return;
       const retryKey = `report-retry-${student.lastSessionId}`;
       const lastAttempt = Number(localStorage.getItem(retryKey) || 0);
       const remainingDelay = reportRetryDelayMs - (Date.now() - lastAttempt);
@@ -44,7 +45,7 @@ const SessionHistory = ({ user, onBack }) => {
         try {
           data = JSON.parse(responseText);
         } catch {
-          throw new Error('שרת הדירוג לא זמין או שעדיין לא הופעל מחדש. יש להפעיל מחדש את השרת ולרענן את הדף.');
+          throw new Error('שרת הדירוג לא זמין או שעדיין לא הופעל מחדש.');
         }
         if (!response.ok) {
           throw new Error(data.message || 'לא ניתן להפיק דוח.');
@@ -52,7 +53,7 @@ const SessionHistory = ({ user, onBack }) => {
 
         setStudents((currentStudents) => currentStudents.map((currentStudent) =>
           currentStudent.studentId === student.studentId
-            ? { ...currentStudent, score: data.report.score, report: data.report }
+            ? { ...currentStudent, score: data.report?.score, report: data.report }
             : currentStudent
         ));
         localStorage.removeItem(retryKey);
@@ -71,9 +72,9 @@ const SessionHistory = ({ user, onBack }) => {
         const response = await fetch(
           isAdmin ? `${API_URL}/api/admin/reports` : `${API_URL}/api/StudentRoutes/summary`,
           {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('accessToken')}`
-          }
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+            }
           }
         );
 
@@ -84,10 +85,10 @@ const SessionHistory = ({ user, onBack }) => {
         }
 
         if (isAdmin) {
-          setTeachers(data);
+          setTeachers(Array.isArray(data) ? data : []);
         } else {
-          setStudents(data);
-          const studentsNeedingReports = data.filter(
+          setStudents(Array.isArray(data) ? data : []);
+          const studentsNeedingReports = (Array.isArray(data) ? data : []).filter(
             (student) => !student.report && student.lastSessionId
           );
           if (studentsNeedingReports.length) {
@@ -150,7 +151,7 @@ const SessionHistory = ({ user, onBack }) => {
       });
       const report = await reportResponse.json();
       if (!reportResponse.ok) throw new Error(report.message || 'המורה נוספה, אך הרשימה לא התרעננה');
-      setTeachers(report);
+      setTeachers(Array.isArray(report) ? report : []);
     } catch (error) {
       setFormMessage(error instanceof Error ? error.message : 'אירעה שגיאה בהוספת מורה');
     }
@@ -189,34 +190,40 @@ const SessionHistory = ({ user, onBack }) => {
         <p className="session-history-empty">אין עדיין מורות.</p>
       )}
 
-      {!loading && !errorMessage && user?.role === 'admin' && teachers.map((teacher) => (
-        <details className="teacher-group" key={teacher._id}>
-          <summary>{teacher.Teachername} <span>{teacher.students.length} תלמידים</span></summary>
-          {teacher.students.length === 0 ? (
-            <p className="session-history-empty">אין תלמידים תחת מורה זו.</p>
-          ) : (
-            <div className="session-history-table-wrap">
-              <table className="session-history-table">
-                <thead><tr><th>שם התלמיד/ה</th><th>ציון</th><th>מבחנים שהושלמו</th><th>בחינה אחרונה</th></tr></thead>
-                <tbody>
-                  {teacher.students.map((student) => {
-                    const completedSessions = student.sessions.filter((session) => session.status === 'completed');
-                    const lastSession = completedSessions.sort((first, second) => new Date(second.completedAt || second.startedAt) - new Date(first.completedAt || first.startedAt))[0];
-                    return (
-                      <tr key={student._id}>
-                        <td>{student.Studentname}</td>
-                        <td>{lastSession?.report?.score ?? student.score ?? 'אין ציון'}</td>
-                        <td>{completedSessions.length}</td>
-                        <td>{lastSession?.completedAt ? new Date(lastSession.completedAt).toLocaleDateString('he-IL') : 'אין בחינה'}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </details>
-      ))}
+      {!loading && !errorMessage && user?.role === 'admin' && teachers.map((teacher) => {
+        const teacherStudents = Array.isArray(teacher?.students) ? teacher.students : [];
+        return (
+          <details className="teacher-group" key={teacher?._id || Math.random()}>
+            <summary>{teacher?.Teachername || 'מורה'} <span>{teacherStudents.length} תלמידים</span></summary>
+            {teacherStudents.length === 0 ? (
+              <p className="session-history-empty">אין תלמידים תחת מורה זו.</p>
+            ) : (
+              <div className="session-history-table-wrap">
+                <table className="session-history-table">
+                  <thead><tr><th>שם התלמיד/ה</th><th>ציון</th><th>מבחנים שהושלמו</th><th>בחינה אחרונה</th></tr></thead>
+                  <tbody>
+                    {teacherStudents.map((student) => {
+                      const sessions = Array.isArray(student?.sessions) ? student.sessions : [];
+                      const completedSessions = sessions.filter((session) => session?.status === 'completed');
+                      const lastSession = completedSessions.sort((first, second) => new Date(second?.completedAt || second?.startedAt || 0) - new Date(first?.completedAt || first?.startedAt || 0))[0];
+                      const displayScore = lastSession?.report?.score ?? student?.score ?? 'אין ציון';
+                      const displayDate = lastSession?.completedAt ? new Date(lastSession.completedAt).toLocaleDateString('he-IL') : 'אין בחינה';
+                      return (
+                        <tr key={student?._id || Math.random()}>
+                          <td>{student?.Studentname || 'תלמיד/ה'}</td>
+                          <td>{displayScore}</td>
+                          <td>{completedSessions.length}</td>
+                          <td>{displayDate}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </details>
+        );
+      })}
 
       {user?.role !== 'admin' && !loading && !errorMessage && students.length === 0 && (
         <p className="session-history-empty">לא נמצאו תלמידים.</p>
@@ -233,44 +240,49 @@ const SessionHistory = ({ user, onBack }) => {
               </tr>
             </thead>
             <tbody>
-              {students.map((student) => (
-                <tr key={student.studentId}>
-                  <td>
-                    <details>
-                      <summary>{student.studentName}</summary>
-                      {student.report && (
-                        <section aria-label={`משוב עבור ${student.studentName}`}>
-                          <p>{student.report.explanation}</p>
-                          {student.report.improvements?.length > 0 && (
-                            <>
-                              <h3>מה כדאי לשפר</h3>
-                              <ul>{student.report.improvements.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul>
-                            </>
-                          )}
-                          <p>{student.report.encouragement}</p>
-                          {student.report.items?.map((item, index) => (
-                            <p key={`${item?.part || index}-${index}`}>
-                              {item?.item || ''}: {item?.accuracy ?? 0}%
-                              {item?.improvements?.length > 0 ? ` | ${item.improvements.join(', ')}` : ''}
-                            </p>
-                          ))}
-                        </section>
-                      )}
-                      {!student.report && (
-                        <p role="status">
-                          {reportStatuses[student.studentId] || 'לא נשמר דוח מפורט למבחן הזה.'}
-                        </p>
-                      )}
-                    </details>
-                  </td>
-                  <td>{student.score ?? 'אין ציון'}</td>
-                  <td>
-                    {student.lastExamDate
-                      ? new Date(student.lastExamDate).toLocaleDateString('he-IL')
-                      : 'אין בחינה'}
-                  </td>
-                </tr>
-              ))}
+              {students.map((student) => {
+                const safeReport = student?.report || {};
+                const safeScore = safeReport.score ?? student?.score ?? 'אין ציון';
+                const safeDate = student?.lastExamDate ? new Date(student.lastExamDate).toLocaleDateString('he-IL') : 'אין בחינה';
+
+                return (
+                  <tr key={student?.studentId || Math.random()}>
+                    <td>
+                      <details>
+                        <summary>{student?.studentName || 'תלמיד/ה'}</summary>
+                        {safeReport.explanation ? (
+                          <section aria-label={`משוב עבור ${student?.studentName || 'תלמיד/ה'}`}>
+                            <p>{safeReport.explanation}</p>
+                            {Array.isArray(safeReport.improvements) && safeReport.improvements.length > 0 && (
+                              <>
+                                <h3>מה כדאי לשפר</h3>
+                                <ul>
+                                  {safeReport.improvements.map((item, index) => (
+                                    <li key={`imp-${index}`}>{item}</li>
+                                  ))}
+                                </ul>
+                              </>
+                            )}
+                            {safeReport.encouragement && <p>{safeReport.encouragement}</p>}
+                            {Array.isArray(safeReport.items) && safeReport.items.map((item, index) => (
+                              <p key={`item-${index}`}>
+                                {item?.item || 'סעיף'}: {item?.accuracy ?? 0}%
+                                {Array.isArray(item?.improvements) && item.improvements.length > 0 ? ` | ${item.improvements.join(', ')}` : ''}
+                              </p>
+                            ))}
+                          </section>
+                        ) : (
+                          <p role="status">
+                            {reportStatuses[student?.studentId] || 'לא נשמר דוח מפורט למבחן הזה.'}
+                          </p>
+                        )}
+                      </details>
+                    </td>
+                    <td>{safeScore}</td>
+                    <td>{safeDate}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
