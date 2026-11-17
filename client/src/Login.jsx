@@ -7,12 +7,14 @@ const Login = ({ onSuccess }) => {
   const [studentName, setStudentName] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
+  const API_URL = import.meta.env.VITE_API_URL || '';
+
   const handleLogin = async (e, view = 'activity') => {
     e?.preventDefault();
     setErrorMessage('');
 
     try {
-      const loginResponse = await fetch('/api/TeacherRoutes/login', {
+      const loginResponse = await fetch(`${API_URL}/api/TeacherRoutes/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -54,7 +56,7 @@ const Login = ({ onSuccess }) => {
         Authorization: `Bearer ${data.accessToken}`,
       };
 
-      const studentResponse = await fetch('/api/StudentRoutes', {
+      const studentResponse = await fetch(`${API_URL}/api/StudentRoutes`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -68,7 +70,7 @@ const Login = ({ onSuccess }) => {
         throw new Error(student.message || 'יצירת תלמיד נכשלה');
       }
 
-      const sessionResponse = await fetch('/api/SessionRoutes/Sessions', {
+      const sessionResponse = await fetch(`${API_URL}/api/SessionRoutes/Sessions`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ studentId: student._id }),
