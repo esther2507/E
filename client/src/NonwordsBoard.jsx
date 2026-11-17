@@ -5,7 +5,9 @@ import ReadingResponsePanel from './ReadingResponsePanel';
 import './NonwordsBoard.css';
 
 export default function NonwordsBoard({ onComplete, sessionId, isCompleting = false }) {
-  const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null)
+
+  const API_URL = import.meta.env.VITE_API_URL || ''
 
   return (
     <div className="board-container">

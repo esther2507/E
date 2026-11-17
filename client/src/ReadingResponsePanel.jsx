@@ -34,6 +34,9 @@ const ReadingResponsePanel = ({
   const [message, setMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const responseInputRef = useRef(null);
+  
+  const API_URL = import.meta.env.VITE_API_URL || '';
+
   const showNikudButtons = part !== 'letters';
   const marksForPart = marksByPart[part];
   const hebrewMarks = marksForPart
@@ -77,7 +80,7 @@ const ReadingResponsePanel = ({
 
     setIsSaving(true);
     try {
-      const response = await fetch('/api/ItemResultRoutes/responses', {
+      const response = await fetch(`${API_URL}/api/ItemResultRoutes/responses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -9,6 +9,7 @@ export default function LettersBoard({ onComplete, sessionId }) {
   const currentLetters = boardType === 'ordered' ? lettersOrdered : lettersRandom;
   const boardName = boardType === 'ordered' ? 'אותיות בסדר רגיל' : 'אותיות מעורבבות';
 
+  const API_URL = import.meta.env.VITE_API_URL || ''
   return (
     <div className="board-container">
       <div className="reading-workspace">

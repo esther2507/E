@@ -29,6 +29,7 @@ import './WordToImage.css';
 const WordToImage = ({ onComplate, sessionId }) => {
     // const [saveError, setSaveError] = useState('');
     // const [isSaving, setIsSaving] = useState(false);
+    const API_URL = import.meta.env.VITE_API_URL || ''
     const groups = [
         {
             groupName: "משפטים פשוטים (שלב א')",

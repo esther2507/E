@@ -5,13 +5,15 @@ import LettersBoard from './LettersBoard';
 import CombosBoard from './CombosBoard';
 import NonwordsBoard from './NonwordsBoard';
 import SessionHistory from './SessionHistory';
-import './App.css'
+import './App.css';
 
 function App() {
   const [user, setUser] = useState(null);
-  const [stage, setStage] = useState('word')
+  const [stage, setStage] = useState('word');
   const [completionError, setCompletionError] = useState('');
   const [isCompleting, setIsCompleting] = useState(false);
+
+  const API_URL = import.meta.env.VITE_API_URL || ''
 
   function handleLogout() {
     localStorage.removeItem('accessToken');
@@ -24,7 +26,7 @@ function App() {
 
     try {
       const response = await fetch(
-        `/api/SessionRoutes/Sessions/${user.sessionId}/complete`,
+        `${API_URL}/api/SessionRoutes/Sessions/${user.sessionId}/complete`,
         {
           method: 'PATCH',
           headers: {
@@ -87,16 +89,11 @@ function App() {
       {stage == 'combos' && (
         <CombosBoard sessionId={user.sessionId} onComplete={() => setStage('nonwords')} />
       )}
-      {/* {stage == 'nonwords' && <NonwordsBoard />} */}
-
       {stage === 'nonwords' && (
         <NonwordsBoard sessionId={user.sessionId} onComplete={handleCompleteExam} isCompleting={isCompleting} />
       )}
-
     </>
-
-
-  )
+  );
 }
 
-export default App
+export default App;
