@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useState } from 'react';
 import { lettersOrdered, lettersRandom } from '../../src/data/readingData';
 import ReadingResponsePanel from './ReadingResponsePanel';
 import './LettersBoard.css';
@@ -9,7 +10,8 @@ export default function LettersBoard({ onComplete, sessionId }) {
   const currentLetters = boardType === 'ordered' ? lettersOrdered : lettersRandom;
   const boardName = boardType === 'ordered' ? 'אותיות בסדר רגיל' : 'אותיות מעורבבות';
 
-  const API_URL = import.meta.env.VITE_API_URL || ''
+  const API_URL = import.meta.env.VITE_API_URL || '';
+
   return (
     <div className="board-container">
       <div className="reading-workspace">

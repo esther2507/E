@@ -27,8 +27,6 @@ import image24 from './assets/chair/image24.png'
 import './WordToImage.css';
 
 const WordToImage = ({ onComplate, sessionId }) => {
-    // const [saveError, setSaveError] = useState('');
-    // const [isSaving, setIsSaving] = useState(false);
     const API_URL = import.meta.env.VITE_API_URL || ''
     const groups = [
         {
@@ -158,7 +156,7 @@ const WordToImage = ({ onComplate, sessionId }) => {
         setIsAnswerSubmitted(true);
 
         try {
-            const response = await fetch('/api/ItemResultRoutes/itemresults', {
+            const response = await fetch(`${API_URL}/api/ItemResultRoutes/itemresults`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
