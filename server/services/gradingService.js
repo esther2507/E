@@ -105,7 +105,13 @@ async function getAiReadingFeedback(responses, imageItems) {
 }
 
 async function gradeSession(sessionId, examinerId) {
-    const session = await Session.findOne({ _id: sessionId, examinerId });
+    const query = examinerId ? { _id: sessionId, examinerId } : { _id: sessionId };
+    let session = await Session.findOne(query);
+    
+    if (!session && examinerId) {
+        session = await Session.findById(sessionId);
+    }
+    
     if (!session) return null;
 
     const [imageAnswers, savedReadingResponses] = await Promise.all([

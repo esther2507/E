@@ -21,7 +21,6 @@ const createStudent = async (req, res) => {
             return res.status(200).json(existingStudent)
         }
 
-        // const hashedPassword = await bcrypt.hash(password, 10)
         const student = new Student({
             Studentname,
             organization,
