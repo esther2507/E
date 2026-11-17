@@ -15,6 +15,8 @@ const SessionHistory = ({ user, onBack }) => {
   const [reportStatuses, setReportStatuses] = useState({});
   const pendingReports = useRef(new Set());
 
+  const API_URL = import.meta.env.VITE_API_URL || '';
+
   useEffect(() => {
     async function generateStudentReport(student) {
       const retryKey = `report-retry-${student.lastSessionId}`;
@@ -31,7 +33,7 @@ const SessionHistory = ({ user, onBack }) => {
 
       localStorage.setItem(retryKey, String(Date.now()));
       try {
-        const response = await fetch(`/api/SessionRoutes/Sessions/${student.lastSessionId}/grade`, {
+        const response = await fetch(`${API_URL}/api/SessionRoutes/Sessions/${student.lastSessionId}/grade`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`
@@ -67,7 +69,7 @@ const SessionHistory = ({ user, onBack }) => {
       try {
         const isAdmin = user?.role === 'admin';
         const response = await fetch(
-          isAdmin ? '/api/admin/reports' : '/api/StudentRoutes/summary',
+          isAdmin ? `${API_URL}/api/admin/reports` : `${API_URL}/api/StudentRoutes/summary`,
           {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`
@@ -121,7 +123,7 @@ const SessionHistory = ({ user, onBack }) => {
     setFormMessage('');
 
     try {
-      const response = await fetch('/api/TeacherRoutes/teachers', {
+      const response = await fetch(`${API_URL}/api/TeacherRoutes/teachers`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -141,7 +143,7 @@ const SessionHistory = ({ user, onBack }) => {
       setTeacherPassword('');
       setFormMessage('המורה נוספה בהצלחה.');
 
-      const reportResponse = await fetch('/api/admin/reports', {
+      const reportResponse = await fetch(`${API_URL}/api/admin/reports`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`
         }
@@ -226,7 +228,6 @@ const SessionHistory = ({ user, onBack }) => {
             <thead>
               <tr>
                 <th>שם התלמיד/ה</th>
-                {/* <th>גיל</th> */}
                 <th>ציון</th>
                 <th>תאריך בחינה אחרון</th>
               </tr>
