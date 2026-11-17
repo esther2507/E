@@ -1,4 +1,4 @@
-const { GoogleGenAI } = require("@google/genai")
+const { GoogleGenAI } = require("@google/genai");
 const { ReadingResponse, ItemResult, Session } = require("../models/readingModel");
 
 const answerKey = {
@@ -59,7 +59,7 @@ async function getAiReadingFeedback(responses, imageItems) {
     let response;
     try {
         response = await ai.models.generateContent({
-            model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
+            model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
             contents: userContent,
             config: {
                 systemInstruction: systemInstruction,
@@ -105,24 +105,23 @@ async function getAiReadingFeedback(responses, imageItems) {
 }
 
 async function gradeSession(sessionId, examinerId) {
-    const query = examinerId ? { _id: sessionId, examinerId } : { _id: sessionId };
-    let session = await Session.findOne(query);
-    
+    let session = await Session.findById(sessionId);
     if (!session && examinerId) {
-        session = await Session.findById(sessionId);
+        session = await Session.findOne({ _id: sessionId, examinerId });
     }
-    
     if (!session) return null;
 
     const [imageAnswers, savedReadingResponses] = await Promise.all([
         ItemResult.find({ sessionId }).sort({ createdAt: 1 }).lean(),
         ReadingResponse.find({ sessionId }).sort({ createdAt: 1 }).lean()
     ]);
+    
     const latestResponses = new Map();
     for (const response of savedReadingResponses) {
         latestResponses.set(`${response.part}:${response.boardName}:${response.itemIndex}`, response);
     }
     const readingResponses = [...latestResponses.values()];
+    
     const imageItems = imageAnswers.map((answer) => {
         const expected = answerKey[`${answer.questionGroup}:${answer.questionId}`];
         return {
@@ -144,6 +143,7 @@ async function gradeSession(sessionId, examinerId) {
         readingItems: [],
         aiGenerated: false
     };
+    
     if (readingResponses.length) {
         readingFeedback = await getAiReadingFeedback(readingResponses, imageItems);
     }
@@ -152,7 +152,9 @@ async function gradeSession(sessionId, examinerId) {
         ...imageItems.map((item) => ({ ...item, boardName: "wordToImage" })),
         ...readingFeedback.readingItems
     ];
+    
     const score = calculateWeightedScore(items);
+    
     const report = {
         score,
         explanation: readingResponses.length
@@ -172,8 +174,13 @@ async function gradeSession(sessionId, examinerId) {
         aiGenerated: readingFeedback.aiGenerated,
         generatedAt: new Date()
     };
-    session.report = report;
-    await session.save();
+
+    await Session.findByIdAndUpdate(sessionId, {
+        report: report,
+        score: score,
+        status: "completed"
+    });
+
     return report;
 }
 
