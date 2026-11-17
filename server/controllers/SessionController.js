@@ -90,12 +90,12 @@ const completeSession = async (req, res) => {
                 requestId: error.requestId
             });
 
-            // טיפול ממוקד בשגיאות חיצוניות (עומס 503 או חריגת מכסה 429)
+            // טיפול ממוקד בשגיאות חיצוניות (502/503 עומס או 429 חריגת מכסה)
             let gradingError = "המבחן הסתיים ונשמר בהצלחה, אך הפקת הדו\"ח נכשלה זמנית.";
             
             const status = error.statusCode || error.upstreamStatus;
-            if (status === 503) {
-                gradingError = "שירות ה-AI חווה עומס זמני (503). המבחן נשמר בהצלחה, ניתן לנסות שוב מאוחר יותר.";
+            if (status === 503 || status === 502) {
+                gradingError = "שירות ה-AI חווה עומס או עיכוב זמני. המבחן נשמר בהצלחה, ניתן לנסות שוב מאוחר יותר.";
             } else if (status === 429) {
                 gradingError = "חריגה ממכסת הקריאות מול ספק ה-AI (429). המבחן נשמר בהצלחה.";
             } else if (error.message && error.message.includes("ANTHROPIC_API_KEY")) {
@@ -136,15 +136,15 @@ const gradeCompletedSession = async (req, res) => {
         const status = error.statusCode || error.upstreamStatus || 500;
         let message = "לא ניתן להפיק ציון כרגע. בדקו את החיבור ל־Claude ונסו שוב.";
 
-        if (status === 503) {
-            message = "שירות ה-AI חווה עומס זמני (503). נסו שוב מאוחר יותר.";
+        if (status === 503 || status === 502) {
+            message = "שירות ה-AI חווה עומס או עיכוב זמני. נסו שוב מאוחר יותר.";
         } else if (status === 429) {
             message = "חריגה ממכסת הקריאות (429) מול ספק ה-AI.";
         } else if (error.upstreamStatus) {
             message = `Claude החזיר שגיאה ${error.upstreamStatus}: ${error.message}`;
         }
 
-        return res.status(status === 429 || status === 503 ? 200 : status).json({ message });
+        return res.status(status === 429 || status === 503 || status === 502 ? 200 : status).json({ message });
     }
 };
 
