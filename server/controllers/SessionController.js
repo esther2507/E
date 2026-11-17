@@ -74,13 +74,17 @@ const completeSession = async (req, res) => {
             return res.status(404).json({ message: "Session not found" });
         }
 
-        // שמירה מיידית של הסשן כהושלם (בלתי תלוי בהצלחת ה-AI)
         session.status = "completed";
         session.completedAt = new Date();
         await session.save();
 
         try {
             const report = await gradeSession(session._id, req.user.sub);
+            
+            session.report = report;
+            session.score = report?.score; 
+            await session.save();
+
             return res.status(200).json({ session, report });
         } catch (error) {
             console.error("Could not grade completed session:", {
@@ -90,7 +94,6 @@ const completeSession = async (req, res) => {
                 requestId: error.requestId
             });
 
-            // טיפול ממוקד בשגיאות חיצוניות (502/503 עומס או 429 חריגת מכסה)
             let gradingError = "המבחן הסתיים ונשמר בהצלחה, אך הפקת הדו\"ח נכשלה זמנית.";
             
             const status = error.statusCode || error.upstreamStatus;
@@ -102,7 +105,6 @@ const completeSession = async (req, res) => {
                 gradingError = "יש להגדיר ANTHROPIC_API_KEY בקובץ server/.env כדי להפיק ציון ומשוב.";
             }
 
-            // החזרת 200 עם הסשן השמור כדי שהמערכת לא תציג "אין בחינה"
             return res.status(200).json({ session, report: null, gradingError });
         }
     } catch (error) {
