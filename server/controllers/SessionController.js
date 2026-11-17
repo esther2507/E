@@ -115,15 +115,15 @@ const completeSession = async (req, res) => {
 
 const gradeCompletedSession = async (req, res) => {
     try {
-        // חיפוש גמיש לפי מזהה הסשן בלבד כדי למנוע דחיית 404 בגלל אי-התאמה של מזהה
-        let session = await Session.findById(req.params.id);
+        const isAdmin = req.user?.role === "admin";
+        const query = { _id: req.params.id, status: "completed" };
         
-        if (!session && req.user?.role !== "admin") {
-            session = await Session.findOne({
-                _id: req.params.id,
-                examinerId: req.user.sub
-            });
+        // אם המשתמש אינו מנהל, נדרוש התאמה של examinerId
+        if (!isAdmin) {
+            query.examinerId = req.user.sub;
         }
+
+        const session = await Session.findOne(query);
 
         if (!session) {
             return res.status(404).json({ message: "Completed session not found" });
@@ -147,7 +147,7 @@ const gradeCompletedSession = async (req, res) => {
         } else if (status === 429) {
             message = "חריגה ממכסת הקריאות (429) מול ספק ה-AI.";
         } else if (error.upstreamStatus) {
-            message = `ספק ה-AI החזר שגיאה ${error.upstreamStatus}: ${error.message}`;
+            message = `ספק ה-AI החזיר שגיאה ${error.upstreamStatus}: ${error.message}`;
         }
 
         return res.status(status === 429 || status === 503 || status === 502 ? 200 : status).json({ message });
