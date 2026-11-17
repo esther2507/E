@@ -115,17 +115,21 @@ const completeSession = async (req, res) => {
 
 const gradeCompletedSession = async (req, res) => {
     try {
-        const session = await Session.findOne({
-            _id: req.params.id,
-            examinerId: req.user.sub,
-            status: "completed"
-        });
+        // חיפוש גמיש לפי מזהה הסשן בלבד כדי למנוע דחיית 404 בגלל אי-התאמה של מזהה
+        let session = await Session.findById(req.params.id);
+        
+        if (!session && req.user?.role !== "admin") {
+            session = await Session.findOne({
+                _id: req.params.id,
+                examinerId: req.user.sub
+            });
+        }
 
         if (!session) {
             return res.status(404).json({ message: "Completed session not found" });
         }
 
-        const report = await gradeSession(session._id, req.user.sub);
+        const report = await gradeSession(session._id, session.examinerId || req.user.sub);
         return res.status(200).json({ report });
     } catch (error) {
         console.error("Could not grade completed session:", {
@@ -136,14 +140,14 @@ const gradeCompletedSession = async (req, res) => {
         });
 
         const status = error.statusCode || error.upstreamStatus || 500;
-        let message = "לא ניתן להפיק ציון כרגע. בדקו את החיבור ל־Claude ונסו שוב.";
+        let message = "לא ניתן להפיק ציון כרגע. בדקו את החיבור ונסו שוב.";
 
         if (status === 503 || status === 502) {
             message = "שירות ה-AI חווה עומס או עיכוב זמני. נסו שוב מאוחר יותר.";
         } else if (status === 429) {
             message = "חריגה ממכסת הקריאות (429) מול ספק ה-AI.";
         } else if (error.upstreamStatus) {
-            message = `Claude החזיר שגיאה ${error.upstreamStatus}: ${error.message}`;
+            message = `ספק ה-AI החזר שגיאה ${error.upstreamStatus}: ${error.message}`;
         }
 
         return res.status(status === 429 || status === 503 || status === 502 ? 200 : status).json({ message });
