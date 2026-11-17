@@ -1,0 +1,94 @@
+.admin-page {
+  direction: rtl;
+  max-width: 760px;
+  margin: 40px auto;
+  padding: 32px;
+  background: #fff;
+  border: 1px solid #e5eaf2;
+  border-radius: 20px;
+  box-shadow: 0 12px 32px rgba(31, 57, 91, 0.1);
+  color: #1e293b;
+}
+
+.admin-page h1 {
+  margin: 0 0 8px;
+  color: #173b73;
+  font-size: 30px;
+}
+
+.admin-page p {
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.admin-page form {
+  display: grid;
+  gap: 16px;
+  margin: 24px 0;
+  padding: 22px;
+  background: #f8faff;
+  border: 1px solid #e1e9f5;
+  border-radius: 14px;
+}
+
+.admin-page label {
+  display: block;
+  margin-bottom: 7px;
+  color: #334155;
+  font-weight: 600;
+}
+
+.admin-page input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+}
+
+.admin-page input:focus {
+  border-color: #2563eb;
+  outline: 3px solid rgba(37, 99, 235, 0.14);
+}
+
+.admin-page button {
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 10px;
+  background: #2563eb;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-page button:hover {
+  background: #1d4ed8;
+}
+
+.admin-page button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.admin-page ul {
+  padding: 0;
+  list-style: none;
+}
+
+.admin-page li {
+  margin: 8px 0;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fbfdff;
+}
+
+@media (max-width: 600px) {
+  .admin-page {
+    margin: 16px;
+    padding: 22px 18px;
+  }
+}

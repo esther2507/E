@@ -1,0 +1,102 @@
+import { useState } from 'react';
+import Login from './Login';
+import WordToImage from './WordToImage';
+import LettersBoard from './LettersBoard';
+import CombosBoard from './CombosBoard';
+import NonwordsBoard from './NonwordsBoard';
+import SessionHistory from './SessionHistory';
+import './App.css'
+
+function App() {
+  const [user, setUser] = useState(null);
+  const [stage, setStage] = useState('word')
+  const [completionError, setCompletionError] = useState('');
+  const [isCompleting, setIsCompleting] = useState(false);
+
+  function handleLogout() {
+    localStorage.removeItem('accessToken');
+    setUser(null);
+  }
+
+  async function handleCompleteExam() {
+    setCompletionError('');
+    setIsCompleting(true);
+
+    try {
+      const response = await fetch(
+        `/api/SessionRoutes/Sessions/${user.sessionId}/complete`,
+        {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+          }
+        }
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'לא ניתן לסיים את המבחן');
+      }
+
+      setUser({
+        ...user,
+        view: 'results',
+        report: data.report,
+        gradingError: data.gradingError
+      });
+    } catch (error) {
+      setCompletionError(
+        error instanceof Error ? error.message : 'לא ניתן לסיים את המבחן'
+      );
+    } finally {
+      setIsCompleting(false);
+    }
+  }
+
+  if (!user) {
+    return <Login onSuccess={setUser} />;
+  }
+
+  if (!['teacher', 'admin'].includes(user.role)) {
+    return (
+      <main dir="rtl">
+        <p>המערכת מיועדת למורות בלבד.</p>
+        <button className="button-end" onClick={handleLogout}>
+          חזרה לכניסה
+        </button>
+      </main>
+    );
+  }
+
+  if (user.role === 'admin' || user.view === 'results') {
+    return <SessionHistory user={user} onBack={handleLogout} />;
+  }
+
+  return (
+    <>
+      {isCompleting && <p role="status">בודק/ת את התשובות ומכין/ה משוב. התהליך עשוי להימשך כמה שניות...</p>}
+      {completionError && <p role="alert">{completionError}</p>}
+      {stage == 'word' && (
+        <WordToImage studentName={user.studentName}
+          sessionId={user.sessionId}
+          onComplate={() => setStage('letters')} />
+      )}
+      {stage === 'letters' && (
+        <LettersBoard sessionId={user.sessionId} onComplete={() => setStage('combos')} />
+      )}
+      {stage == 'combos' && (
+        <CombosBoard sessionId={user.sessionId} onComplete={() => setStage('nonwords')} />
+      )}
+      {/* {stage == 'nonwords' && <NonwordsBoard />} */}
+
+      {stage === 'nonwords' && (
+        <NonwordsBoard sessionId={user.sessionId} onComplete={handleCompleteExam} isCompleting={isCompleting} />
+      )}
+
+    </>
+
+
+  )
+}
+
+export default App
