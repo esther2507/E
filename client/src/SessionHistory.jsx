@@ -1,26 +1,282 @@
-{student.report && (
-  <section aria-label={`משוב עבור ${student.studentName}`}>
-    <p>{student.report.explanation || ''}</p>
-    
-    {student.report.improvements?.length > 0 && (
-      <>
-        <h3>מה כדאי לשפר</h3>
-        <ul>
-          {student.report.improvements.map((item, index) => (
-            <li key={`improvement-${index}`}>{item}</li>
-          ))}
-        </ul>
-      </>
-    )}
+import { useEffect, useRef, useState } from 'react';
+import './SessionHistory.css';
 
-    <p>{student.report.encouragement || ''}</p>
+const reportRetryDelayMs = 5 * 60 * 1000;
 
-    {student.report.items?.map((item, index) => (
-      <p key={`item-${item?.part || index}-${index}`}>
-        {item?.item || 'סעיף'}: {item?.accuracy ?? 0}%
-        {item?.improvements?.length > 0 ? ` | ${item.improvements.join(', ')}` : ''}
-      </p>
-    ))}
-  </section>
-)}
+const SessionHistory = ({ user, onBack }) => {
+  const [students, setStudents] = useState([]);
+  const [teachers, setTeachers] = useState([]);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [teacherName, setTeacherName] = useState('');
+  const [teacherUsername, setTeacherUsername] = useState('');
+  const [teacherPassword, setTeacherPassword] = useState('');
+  const [formMessage, setFormMessage] = useState('');
+  const [reportStatuses, setReportStatuses] = useState({});
+  const pendingReports = useRef(new Set());
+
+  const API_URL = import.meta.env.VITE_API_URL || '';
+
+  useEffect(() => {
+    async function generateStudentReport(student) {
+      const retryKey = `report-retry-${student.lastSessionId}`;
+      const lastAttempt = Number(localStorage.getItem(retryKey) || 0);
+      const remainingDelay = reportRetryDelayMs - (Date.now() - lastAttempt);
+      if (remainingDelay > 0) {
+        const remainingMinutes = Math.ceil(remainingDelay / 60000);
+        setReportStatuses((statuses) => ({
+          ...statuses,
+          [student.studentId]: `הפקת הדוח נכשלה. ניסיון אוטומטי נוסף בעוד ${remainingMinutes} דקות.`
+        }));
+        return;
+      }
+
+      localStorage.setItem(retryKey, String(Date.now()));
+      try {
+        const response = await fetch(`${API_URL}/api/SessionRoutes/Sessions/${student.lastSessionId}/grade`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+          }
+        });
+        const responseText = await response.text();
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch {
+          throw new Error('שרת הדירוג לא זמין או שעדיין לא הופעל מחדש. יש להפעיל מחדש את השרת ולרענן את הדף.');
+        }
+        if (!response.ok) {
+          throw new Error(data.message || 'לא ניתן להפיק דוח.');
+        }
+
+        setStudents((currentStudents) => currentStudents.map((currentStudent) =>
+          currentStudent.studentId === student.studentId
+            ? { ...currentStudent, score: data.report.score, report: data.report }
+            : currentStudent
+        ));
+        localStorage.removeItem(retryKey);
+        setReportStatuses((statuses) => ({ ...statuses, [student.studentId]: '' }));
+      } catch (error) {
+        setReportStatuses((statuses) => ({
+          ...statuses,
+          [student.studentId]: error instanceof Error ? error.message : 'לא ניתן להפיק דוח.'
+        }));
+      }
+    }
+
+    async function loadResults() {
+      try {
+        const isAdmin = user?.role === 'admin';
+        const response = await fetch(
+          isAdmin ? `${API_URL}/api/admin/reports` : `${API_URL}/api/StudentRoutes/summary`,
+          {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+          }
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'לא ניתן לטעון את התלמידים');
+        }
+
+        if (isAdmin) {
+          setTeachers(data);
+        } else {
+          setStudents(data);
+          const studentsNeedingReports = data.filter(
+            (student) => !student.report && student.lastSessionId
+          );
+          if (studentsNeedingReports.length) {
+            setReportStatuses(Object.fromEntries(
+              studentsNeedingReports.map((student) => [student.studentId, 'מפיק ציון ומשוב...'])
+            ));
+            studentsNeedingReports.forEach((student) => {
+              if (!pendingReports.current.has(student.lastSessionId)) {
+                pendingReports.current.add(student.lastSessionId);
+                generateStudentReport(student).finally(() => {
+                  pendingReports.current.delete(student.lastSessionId);
+                });
+              }
+            });
+          }
+        }
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : 'אירעה שגיאה בטעינת התלמידים'
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadResults();
+  }, [user?.role]);
+
+  async function handleAddTeacher(event) {
+    event.preventDefault();
+    setFormMessage('');
+
+    try {
+      const response = await fetch(`${API_URL}/api/TeacherRoutes/teachers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+        },
+        body: JSON.stringify({
+          Teachername: teacherName,
+          username: teacherUsername,
+          password: teacherPassword
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'לא ניתן להוסיף מורה');
+
+      setTeacherName('');
+      setTeacherUsername('');
+      setTeacherPassword('');
+      setFormMessage('המורה נוספה בהצלחה.');
+
+      const reportResponse = await fetch(`${API_URL}/api/admin/reports`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+        }
+      });
+      const report = await reportResponse.json();
+      if (!reportResponse.ok) throw new Error(report.message || 'המורה נוספה, אך הרשימה לא התרעננה');
+      setTeachers(report);
+    } catch (error) {
+      setFormMessage(error instanceof Error ? error.message : 'אירעה שגיאה בהוספת מורה');
+    }
+  }
+
+  return (
+    <main className="session-history" dir="rtl">
+      <header className="session-history-header">
+        <h1>{user?.role === 'admin' ? 'מורות ותלמידים' : 'תוצאות תלמידים'}</h1>
+        <button
+          type="button"
+          className="access-denied-back-button"
+          onClick={onBack}
+        >
+          חזרה לכניסה
+        </button>
+      </header>
+
+      {user?.role === 'admin' && (
+        <section className="management-section">
+          <h2>הוספת מורה</h2>
+          <form className="management-form" onSubmit={handleAddTeacher}>
+            <label>שם מלא<input value={teacherName} onChange={(event) => setTeacherName(event.target.value)} required /></label>
+            <label>שם משתמש<input value={teacherUsername} onChange={(event) => setTeacherUsername(event.target.value)} required /></label>
+            <label>סיסמה<input type="password" value={teacherPassword} onChange={(event) => setTeacherPassword(event.target.value)} minLength={8} required /></label>
+            <button type="submit" className="button-end">הוספת מורה</button>
+          </form>
+          {formMessage && <p role="status">{formMessage}</p>}
+        </section>
+      )}
+
+      {loading && <p>{user?.role === 'admin' ? 'טוען מורות ותלמידים...' : 'טוען תלמידים...'}</p>}
+      {errorMessage && <p role="alert">{errorMessage}</p>}
+
+      {!loading && !errorMessage && user?.role === 'admin' && teachers.length === 0 && (
+        <p className="session-history-empty">אין עדיין מורות.</p>
+      )}
+
+      {!loading && !errorMessage && user?.role === 'admin' && teachers.map((teacher) => (
+        <details className="teacher-group" key={teacher._id}>
+          <summary>{teacher.Teachername} <span>{teacher.students.length} תלמידים</span></summary>
+          {teacher.students.length === 0 ? (
+            <p className="session-history-empty">אין תלמידים תחת מורה זו.</p>
+          ) : (
+            <div className="session-history-table-wrap">
+              <table className="session-history-table">
+                <thead><tr><th>שם התלמיד/ה</th><th>ציון</th><th>מבחנים שהושלמו</th><th>בחינה אחרונה</th></tr></thead>
+                <tbody>
+                  {teacher.students.map((student) => {
+                    const completedSessions = student.sessions.filter((session) => session.status === 'completed');
+                    const lastSession = completedSessions.sort((first, second) => new Date(second.completedAt || second.startedAt) - new Date(first.completedAt || first.startedAt))[0];
+                    return (
+                      <tr key={student._id}>
+                        <td>{student.Studentname}</td>
+                        <td>{lastSession?.report?.score ?? student.score ?? 'אין ציון'}</td>
+                        <td>{completedSessions.length}</td>
+                        <td>{lastSession?.completedAt ? new Date(lastSession.completedAt).toLocaleDateString('he-IL') : 'אין בחינה'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </details>
+      ))}
+
+      {user?.role !== 'admin' && !loading && !errorMessage && students.length === 0 && (
+        <p className="session-history-empty">לא נמצאו תלמידים.</p>
+      )}
+
+      {user?.role !== 'admin' && !loading && !errorMessage && students.length > 0 && (
+        <div className="session-history-table-wrap">
+          <table className="session-history-table">
+            <thead>
+              <tr>
+                <th>שם התלמיד/ה</th>
+                <th>ציון</th>
+                <th>תאריך בחינה אחרון</th>
+              </tr>
+            </thead>
+            <tbody>
+              {students.map((student) => (
+                <tr key={student.studentId}>
+                  <td>
+                    <details>
+                      <summary>{student.studentName}</summary>
+                      {student.report && (
+                        <section aria-label={`משוב עבור ${student.studentName}`}>
+                          <p>{student.report.explanation}</p>
+                          {student.report.improvements?.length > 0 && (
+                            <>
+                              <h3>מה כדאי לשפר</h3>
+                              <ul>{student.report.improvements.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul>
+                            </>
+                          )}
+                          <p>{student.report.encouragement}</p>
+                          {student.report.items?.map((item, index) => (
+                            <p key={`${item?.part || index}-${index}`}>
+                              {item?.item || ''}: {item?.accuracy ?? 0}%
+                              {item?.improvements?.length > 0 ? ` | ${item.improvements.join(', ')}` : ''}
+                            </p>
+                          ))}
+                        </section>
+                      )}
+                      {!student.report && (
+                        <p role="status">
+                          {reportStatuses[student.studentId] || 'לא נשמר דוח מפורט למבחן הזה.'}
+                        </p>
+                      )}
+                    </details>
+                  </td>
+                  <td>{student.score ?? 'אין ציון'}</td>
+                  <td>
+                    {student.lastExamDate
+                      ? new Date(student.lastExamDate).toLocaleDateString('he-IL')
+                      : 'אין בחינה'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </main>
+  );
+};
+
 export default SessionHistory;
