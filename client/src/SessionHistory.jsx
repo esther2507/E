@@ -34,7 +34,7 @@ const SessionHistory = ({ user, onBack }) => {
 
       localStorage.setItem(retryKey, String(Date.now()));
       try {
-        const response = await fetch(`${API_URL}/api/sessions/${student.lastSessionId}/grade`, {
+        const response = await fetch(`${API_URL}/api/SessionRoutes/Sessions/${student.lastSessionId}/grade`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`
