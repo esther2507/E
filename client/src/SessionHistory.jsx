@@ -47,7 +47,7 @@ const SessionHistory = ({ user, onBack }) => {
         } catch {
           throw new Error('שרת הדירוג לא זמין או שעדיין לא הופעל מחדש.');
         }
-        if (!response.ok) {
+        if (!response.ok || !data.report) {
           throw new Error(data.message || 'לא ניתן להפיק דוח.');
         }
 
@@ -95,14 +95,17 @@ const SessionHistory = ({ user, onBack }) => {
             setReportStatuses(Object.fromEntries(
               studentsNeedingReports.map((student) => [student.studentId, 'מפיק ציון ומשוב...'])
             ));
-            studentsNeedingReports.forEach((student) => {
-              if (!pendingReports.current.has(student.lastSessionId)) {
+            (async () => {
+              for (const student of studentsNeedingReports) {
+                if (pendingReports.current.has(student.lastSessionId)) continue;
                 pendingReports.current.add(student.lastSessionId);
-                generateStudentReport(student).finally(() => {
+                try {
+                  await generateStudentReport(student);
+                } finally {
                   pendingReports.current.delete(student.lastSessionId);
-                });
+                }
               }
-            });
+            })();
           }
         }
       } catch (error) {
