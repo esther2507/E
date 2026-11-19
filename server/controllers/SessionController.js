@@ -78,35 +78,9 @@ const completeSession = async (req, res) => {
         session.completedAt = new Date();
         await session.save();
 
-        try {
-            const report = await gradeSession(session._id, req.user.sub);
-            
-            session.report = report;
-            session.score = report?.score; 
-            await session.save();
-
-            return res.status(200).json({ session, report });
-        } catch (error) {
-            console.error("Could not grade completed session:", {
-                message: error.message,
-                statusCode: error.statusCode,
-                upstreamStatus: error.upstreamStatus,
-                requestId: error.requestId
-            });
-
-            let gradingError = "המבחן הסתיים ונשמר בהצלחה, אך הפקת הדו\"ח נכשלה זמנית.";
-            
-            const status = error.statusCode || error.upstreamStatus;
-            if (status === 503 || status === 502) {
-                gradingError = "שירות ה-AI חווה עומס או עיכוב זמני. המבחן נשמר בהצלחה, ניתן לנסות שוב מאוחר יותר.";
-            } else if (status === 429) {
-                gradingError = "חריגה ממכסת הקריאות מול ספק ה-AI (429). המבחן נשמר בהצלחה.";
-            } else if (error.message && error.message.includes("ANTHROPIC_API_KEY")) {
-                gradingError = "יש להגדיר ANTHROPIC_API_KEY בקובץ server/.env כדי להפיק ציון ומשוב.";
-            }
-
-            return res.status(200).json({ session, report: null, gradingError });
-        }
+        // ההפקה (קריאת AI) נעשית בנפרד דרך /grade בדף התוצאות, כדי שסיום
+        // המבחן יהיה מיידי ולא ייתקע על "בודק/ת את התשובות" כשההפקה איטית.
+        return res.status(200).json({ session, report: null });
     } catch (error) {
         console.error("Could not complete session:", error.message);
         return res.status(500).json({ message: "לא ניתן לסיים את המבחן כרגע." });
