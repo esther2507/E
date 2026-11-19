@@ -1,7 +1,6 @@
 //const bcrypt = require("bcrypt")
 //const jwt= require('jsonwebtoken')
 const { Student, Session, ItemResult } = require("../models/readingModel")
-const { gradeSession } = require("../services/gradingService")
 
 const createStudent = async (req, res) => {
     try {
@@ -126,17 +125,8 @@ const getStudentSummary = async (req, res) => {
                     };
                 }
 
-                if (!lastSession.report || lastSession.report.score === undefined) {
-                    try {
-                        const generatedReport = await gradeSession(lastSession._id, student.teacherId);
-                        // עדכון במסד הנתונים
-                        await Session.findByIdAndUpdate(lastSession._id, { report: generatedReport });
-                        lastSession.report = generatedReport;
-                    } catch (gradingErr) {
-                        console.error("Auto-grading failed during summary fetch:", gradingErr.message);
-                    }
-                }
-
+                // הפקת הציון נעשית בצד הלקוח לכל תלמיד בנפרד (קריאה ל-/grade),
+                // כדי שטעינת הדף לא תיתקע עד שכל הציונים יופקו.
                 return {
                     studentId: student._id,
                     studentName: student.Studentname,
