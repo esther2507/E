@@ -34,6 +34,72 @@ function calculateWeightedScore(items) {
     return totalWeight ? Math.round(weightedPoints / totalWeight) : 0;
 }
 
+const AI_REQUEST_TIMEOUT_MS = 120000;
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function withTimeout(promise, ms) {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+            const error = new Error(`AI request timed out after ${ms / 1000} seconds`);
+            error.upstreamStatus = 504;
+            reject(error);
+        }, ms);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+// קריאה אחת ל-Gemini + בדיקת תקינות התשובה.
+// שגיאה שמסומנת retryable=true תגרום לניסיון נוסף.
+async function requestAiGrading(ai, userContent, systemInstruction, expectedCount) {
+    let response;
+    try {
+        response = await withTimeout(ai.models.generateContent({
+            model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
+            contents: userContent,
+            config: {
+                systemInstruction: systemInstruction,
+                responseMimeType: "application/json"
+            }
+        }), AI_REQUEST_TIMEOUT_MS);
+    } catch (err) {
+        const safeMessage = String(err.message || "Gemini API error")
+            .replaceAll(process.env.GEMINI_API_KEY, "[REDACTED]")
+            .slice(0, 300);
+        const upstreamStatus = Number(err.status || err.upstreamStatus) || 502;
+        const error = new Error(safeMessage);
+        error.upstreamStatus = upstreamStatus;
+        // 429 = מכסה/עומס, 5xx = תקלה זמנית אצל הספק או timeout. 400/401/403/404 = שגיאת הגדרה, אין טעם לנסות שוב.
+        error.retryable = upstreamStatus === 429 || upstreamStatus >= 500;
+        error.statusCode = upstreamStatus === 429 ? 429 : (error.retryable ? 502 : 500);
+        throw error;
+    }
+
+    let parsed;
+    try {
+        parsed = JSON.parse(response.text || "");
+    } catch {
+        const error = new Error("AI returned invalid JSON");
+        error.statusCode = 502;
+        error.retryable = true;
+        throw error;
+    }
+
+    if (!parsed || !Array.isArray(parsed.items) || parsed.items.length !== expectedCount) {
+        const error = new Error(
+            `AI grading response did not match submitted items (expected ${expectedCount}, got ${Array.isArray(parsed?.items) ? parsed.items.length : "none"})`
+        );
+        error.statusCode = 502;
+        error.retryable = true;
+        throw error;
+    }
+
+    return parsed;
+}
+
 async function getAiReadingFeedback(responses, imageItems) {
     if (!process.env.GEMINI_API_KEY) {
         const error = new Error("GEMINI_API_KEY is not configured");
@@ -57,31 +123,29 @@ async function getAiReadingFeedback(responses, imageItems) {
         imageSummary: imageItems.map(({ item, accuracy }) => ({ item, accuracy }))
     });
 
-    let response;
-    try {
-        response = await ai.models.generateContent({
-            model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
-            contents: userContent,
-            config: {
-                systemInstruction: systemInstruction,
-                responseMimeType: "application/json"
-            }
-        });
-    } catch (err) {
-        const safeMessage = String(err.message || "Gemini API error")
-            .replaceAll(process.env.GEMINI_API_KEY, "[REDACTED]")
-            .slice(0, 300);
-        const error = new Error(safeMessage);
-        error.upstreamStatus = err.status || 502;
-        error.statusCode = 502;
-        throw error;
+    // ניסיונות חוזרים: שגיאות זמניות של Gemini (עומס/מכסה/תקלת רשת),
+    // וגם תשובה לא תקינה מה-AI (JSON שבור או מספר פריטים שגוי) - מנסים שוב.
+    const maxAttempts = 3;
+    const retryDelaysMs = [3000, 8000];
+    let parsed;
+    let lastError;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            parsed = await requestAiGrading(ai, userContent, systemInstruction, responses.length);
+            break;
+        } catch (error) {
+            lastError = error;
+            console.warn(`AI grading attempt ${attempt}/${maxAttempts} failed:`, {
+                message: error.message,
+                upstreamStatus: error.upstreamStatus
+            });
+            if (!error.retryable || attempt === maxAttempts) throw error;
+            await sleep(retryDelaysMs[attempt - 1]);
+        }
     }
 
-    const text = response.text;
-    const parsed = JSON.parse(text || "{}");
-    if (!Array.isArray(parsed.items) || parsed.items.length !== responses.length) {
-        throw new Error("AI grading response did not match submitted items");
-    }
+    if (!parsed) throw lastError;
 
     const readingItems = responses.map((item, index) => ({
         part: item.part,
@@ -105,7 +169,7 @@ async function getAiReadingFeedback(responses, imageItems) {
     };
 }
 
-async function gradeSession(sessionId, examinerId) {
+async function runGradeSession(sessionId, examinerId) {
     let session = await Session.findById(sessionId);
     if (!session && examinerId) {
         session = await Session.findOne({ _id: sessionId, examinerId });
@@ -181,6 +245,18 @@ async function gradeSession(sessionId, examinerId) {
     });
 
     return report;
+}
+
+// אם כבר רצה הפקה לאותו מבחן (למשל המורה רעננה את הדף או פתחה לשונית נוספת),
+// מצטרפים לאותה הפקה במקום לשלוח קריאה נוספת ל-AI.
+const gradingInProgress = new Map();
+
+function gradeSession(sessionId, examinerId) {
+    const key = String(sessionId);
+    if (gradingInProgress.has(key)) return gradingInProgress.get(key);
+    const promise = runGradeSession(sessionId, examinerId).finally(() => gradingInProgress.delete(key));
+    gradingInProgress.set(key, promise);
+    return promise;
 }
 
 module.exports = { gradeSession };
