@@ -32,7 +32,6 @@ const SessionHistory = ({ user, onBack }) => {
         return;
       }
 
-      localStorage.setItem(retryKey, String(Date.now()));
       try {
         const response = await fetch(`${API_URL}/api/SessionRoutes/Sessions/${student.lastSessionId}/grade`, {
           method: 'POST',
@@ -59,6 +58,9 @@ const SessionHistory = ({ user, onBack }) => {
         localStorage.removeItem(retryKey);
         setReportStatuses((statuses) => ({ ...statuses, [student.studentId]: '' }));
       } catch (error) {
+        // נרשום את זמן הכשל רק אחרי כשל אמיתי - לא לפני שליחת הבקשה,
+        // אחרת רענון הדף בזמן שההפקה עדיין רצה הציג "הפקת הדוח נכשלה".
+        localStorage.setItem(retryKey, String(Date.now()));
         setReportStatuses((statuses) => ({
           ...statuses,
           [student.studentId]: error instanceof Error ? error.message : 'לא ניתן להפיק דוח.'

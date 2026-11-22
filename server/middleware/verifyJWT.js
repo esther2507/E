@@ -13,7 +13,14 @@ const verifyJWT = (req, res, next) => {
         token,
         process.env.ACCESS_TOKEN_SECRET,
         (err, decoded) => {
-            if (err) return res.status(403).json({ message: 'Forbidden' });
+            if (err) {
+                // טוקן שפג תוקפו או לא תקין - הודעה ברורה למורה במקום "Forbidden" שקט
+                return res.status(401).json({
+                    message: err.name === 'TokenExpiredError'
+                        ? 'פג תוקף ההתחברות. יש לצאת ולהתחבר מחדש.'
+                        : 'ההתחברות אינה תקינה. יש לצאת ולהתחבר מחדש.'
+                });
+            }
             req.user = decoded;
             if (!['teacher', 'admin'].includes(req.user.role)) {
                 return res.status(403).json({ message: 'Forbidden' });

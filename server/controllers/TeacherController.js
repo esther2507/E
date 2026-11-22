@@ -42,7 +42,7 @@ const login = async (req, res) => {
 
             process.env.ACCESS_TOKEN_SECRET,
 
-            { subject: teacher._id.toString(), expiresIn: "1h" }
+            { subject: teacher._id.toString(), expiresIn: "12h" }
 
         )
         const teacherObj = teacher.toObject()
