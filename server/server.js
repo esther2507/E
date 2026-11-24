@@ -1,6 +1,6 @@
 const {Teacher} = require('./models/readingModel'); 
 const bcrypt = require('bcrypt');
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+// process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require("express")
